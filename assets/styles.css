@@ -1,0 +1,38 @@
+
+/* Override Bootstrap button styles */
+.btn-primary {
+    background-color: white;
+    border-color: #dad8d6;
+    border-width: 2px;
+    border-radius: 15px;
+    color: #00634f;
+}
+
+.btn-primary:hover, .btn-primary:active, .btn-primary:active:focus, .btn-primary.active, .open>.dropdown-toggle.btn-primary {
+    background-color: #dad8d6;
+    border-color: #dad8d6;
+    color: #00173b;
+}
+
+.btn-success {
+    background-color: #08a384;
+    border-color: #00634f;
+    border-width: 2px;
+    border-radius: 15px;
+    color: white;
+
+}
+
+
+.nav-tabs.nav-link {
+    color: #e7e7e7;
+    background-color: #08a384;
+    border-radius: 12px;
+    border-color: 00173b;
+}
+
+.nav-tabs.nav-link.active {
+    color: white;
+    background-color: #00173b;
+    font-style: italic;
+}
