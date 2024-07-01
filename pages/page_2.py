@@ -3,6 +3,7 @@
 import dash
 from dash import Dash, dcc, html, Input, Output, State
 from utils import generator
+from utils.config import BLUE, PINK, GRAPHCONFIG, HOVERLABEL
 
 
 dash.register_page(__name__)
@@ -21,7 +22,7 @@ layout = html.Div([
     dcc.Store(id='session', storage_type='session'),
     html.P("test", id="example-output2", style={"verticalAlign": "middle"}),
 
-    dcc.Graph(figure={}, id='generate-chart'),
+    dcc.Graph(figure={}, id='generate-chart', config=GRAPHCONFIG),
 ])
 
 
@@ -39,20 +40,20 @@ def update_generate_chart(pathname, data):
 
         male_pay_range = data.get('male_pay_range', [60000, 80000])
         female_pay_range = data.get('female_pay_range', [60000, 80000])
-        gender_ratio = data.get("gender_ratio", 0.5)
+        gender_ratio = data.get("gender_ratio", 50)
 
-        m_pay, f_pay = generator.basic(male_pay_range, female_pay_range, gender_ratio)
-        fig = ff.create_distplot([m_pay, f_pay], ["Male", "Female"], bin_size=1000)
-        #px.histogram(
-        #    df, x="pay", color="sex", marginal="box", nbins=30
-        #)
+        print(f"Male: {male_pay_range}, Female: {female_pay_range}, p_M = {gender_ratio}%")
+        df = generator.basic(male_pay_range, female_pay_range, gender_ratio)
+        print(df)
+
+        fig = px.histogram(df, x='pay', color='sex', labels={'pay': 'Pay', 'sex': 'Sex'},
+                           barmode="overlay", hover_data={"sex": False},
+                           color_discrete_map={'Male': BLUE, 'Female': PINK}, opacity=0.7,
+                           template="simple_white")
+
+        fig.update_traces(hoverlabel=HOVERLABEL, hovertemplate="<b>%{y}</b>")
+        fig.update_layout(hovermode="x")
+
         return fig
-        #return f"{gender_ratio}, {male_pay_range}, {female_pay_range}"
     else:
         return {}
-
-        #return f"idk {pathname}"
-
-
-#    mask = df["day"] == day
-#    fig = px.bar(df[mask], x="sex", y="total_bill", color="smoker", barmode="group")
