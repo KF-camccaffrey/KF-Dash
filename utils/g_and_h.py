@@ -1,16 +1,16 @@
 
 """
-FUNCTION      | DESCRIPTION                                  | ARGS
--------------------------------------------------------------------------------------------------------------------
-z2gh()        | transform distribution from Z to GH          | z [A, B, g, h]
-gh2z()        | transform distribution from GH to Z          | q [A, B, g, h, interval, tol, maxiter, transformed]
-deriv_z2gh()  | calculate derivative of z2gh()               | z [B, g, h]
-dgh()         | calculate PDF of GH distribution             | x [A, B, g, h, log, interval, tol, maxiter]
-rgh()         | randomly sample from a given GH distribution | n [A, B, g, h]
-qgh()         | calculate inverse CDF of GH distribution     | p [A, B, g, h]
-pgh()         | calculate CDF of GH distribution             | q [A, B, g, h, interval, tol, maxiter]
-letterValue() | estimate GH parameters of a distribution     | x [g_, h_, halfspread]
--------------------------------------------------------------------------------------------------------------------
+FUNCTION      | DESCRIPTION                              | ARGS
+---------------------------------------------------------------------------------------------------------------
+z2gh()        | transform distribution from Z to GH      | z [A, B, g, h]
+gh2z()        | transform distribution from GH to Z      | q [A, B, g, h, interval, tol, maxiter, transformed]
+deriv_z2gh()  | calculate derivative of z2gh()           | z [B, g, h]
+dgh()         | calculate PDF of GH distribution         | x [A, B, g, h, log, interval, tol, maxiter]
+rgh()         | randomly sample from a GH distribution   | n [A, B, g, h]
+qgh()         | calculate inverse CDF of GH distribution | p [A, B, g, h]
+pgh()         | calculate CDF of GH distribution         | q [A, B, g, h, interval, tol, maxiter]
+letterValue() | estimate GH parameters of a distribution | x [g_, h_, halfspread]
+---------------------------------------------------------------------------------------------------------------
 Helper Functions: preprocess(), letterV_Bh_g(), letterV_Bh(), letterV_B(), letterV_g()
 """
 
