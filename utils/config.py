@@ -3,6 +3,15 @@
 BLUE = "#007da4"
 PINK = "#920a7a"
 
+def alpha(color, a):
+    if color.startswith("#"):
+        r,g,b = tuple(int(color[i:i+2],16) for i in (1,3,5))
+    elif color.startswith("rgb"):
+        rgb = color.split("(")[1].split(")")[0]
+        r,g,b = map(int, rgb.split(","))
+    else:
+        raise ValueError("Unsupported color format. Use hex (#RRGGBB) or RGB (rgb(r, g, b)) format.")
+    return f"rgba({r}, {g}, {b}, {a})"
 
 
 #>----------------->     Graph Config      <-----------------<#
