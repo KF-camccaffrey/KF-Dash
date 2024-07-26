@@ -1,36 +1,71 @@
 
 
 import dash
-
 from dash import Dash, dcc, html, Input, Output, State, callback
-import os
+import dash_bootstrap_components as dbc
+import pandas as pd
+import numpy as np
+
 import plotly.express as px
 from scipy.stats import kruskal
 from scikit_posthocs import posthoc_dunn
-import pandas as pd
-from utils.config import GRAPHCONFIG
+from utils.config import GRAPHCONFIG, RED, GRAY, YELLOW
 from utils.cache import get_data
+from utils.comparisons import create_comparisons, effect_bars
+
 
 NAME = "Statistical Tests"
 PATH = "/statistical-tests"
 
-dash.register_page(
-    __name__,
-    path=PATH,
-    title=NAME,
-    name=NAME,
-    order=3
-)
-
 heatmap = dcc.Graph(figure={}, id='heatmap', config=GRAPHCONFIG)
 
+barchart = html.Div([
+    html.Div([
+        html.H3("Pairwise Comparisons"),
+        html.Span("Statistically significant differences will appear in "),
+        html.Span("red", style={'color': RED, 'font-weight': 'bold'}),
+        html.Span(", and insignificant differences in "),
+        html.Span("gray", style={'color': GRAY, 'font-weight': 'bold'}), html.Span("."),
+    ], className="my-5"),
 
-layout = html.Div([
-    dcc.Store(id='session', storage_type='session'),
-    heatmap,
+    dbc.Label("Select Variable", html_for="category-dropdown", className="input-group-label", style={'font-weight': 'bold'}),
+    dcc.Dropdown(
+        id='category-dropdown',
+        options=[
+            {'label': "Education", 'value': 'education'},
+            {'label': "Gender", 'value': 'gender'},
+            {'label': "Race/Ethnicity", 'value': 'race'},
+            {'label': "Job Level", 'value': 'level'},
+        ],
+        value='gender',
+        clearable=False,
+        #options=[
+        #    {'label': 'Difference in Medians ($)', 'value': 'median_diff'},
+        #    {'label': 'Difference in Medians (%)', 'value': 'median_perc'},
+        #],
+        #value='median_diff',  # Default value
+        style={'width': '50%'}
+    ),
+    dcc.Graph(
+        figure={},
+        id='barchart',
+        #style={'height': '800px'}
+    )
 ])
 
+layout = html.Div()
 
+def page_layout():
+    layout = html.Div(id="layout", children=[
+        dbc.Container([
+            barchart,
+        ], className="my-4"),
+    ])
+
+    return layout
+
+
+"""
 @callback(
         Output("heatmap", "figure"),
         #Input("url", "pathname"),
@@ -54,3 +89,60 @@ def update_heatmap(data):
     fig = px.imshow(posthoc_results)
 
     return fig
+"""
+
+
+# Define callback to update the boxplot based on dropdown selection
+@callback(
+    Output('barchart', 'figure'),
+    Input('category-dropdown', 'value'),
+    State('session', 'data')
+)
+def update_barchart(selected_category, data):
+    # Create the boxplot using Plotly
+    #print(selected_category)
+    #print("get_data in update_barchart()")
+    session_id = data.get('session_id', None)
+    df = get_data(session_id)
+
+    #print("yeahhh")
+
+    if df is None:
+        return {}
+
+    #comparisons = {'gender': {}, 'race':{}, 'education': {}, "level": {}}
+    #print("whattttt")
+    comparisons = {selected_category: {}}
+    comparisons = create_comparisons(df, 'pay', 'gender', comparisons)
+    fig = effect_bars(comparisons, method='median_comp')
+
+
+    return fig
+
+
+"""
+@callback(
+    Output('layout', 'children'),
+    Input('url', 'pathname'),
+    State('session', 'data'),
+)
+def validate(path, data):
+    if path == "/statistical-tests":
+        valid = data.get("valid", False)
+        if not valid:
+            return no_data_layout()
+        else:
+            return page_layout().children
+    else:
+        raise dash.exceptions.PreventUpdate
+"""
+
+dash.register_page(
+    __name__,
+    path=PATH,
+    title=NAME,
+    name=NAME,
+    order=3,
+    layout=layout,
+    default=page_layout(),
+)

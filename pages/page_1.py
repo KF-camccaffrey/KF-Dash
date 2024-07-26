@@ -22,16 +22,6 @@ from utils.cache import get_data
 NAME = "Data Generation"
 PATH = "/data-generation"
 
-dash.register_page(
-    __name__,
-    path=PATH,
-    title=NAME,
-    name=NAME,
-    order=1
-)
-
-
-
 # Gender Gap
 gender_gap = html.Div([
     dbc.Label("Gender Gap", html_for="gender-gap", className="input-group-label"),
@@ -60,10 +50,21 @@ gender_ratio = html.Div([
     dcc.Slider(id="gender-ratio", persistence=True, min=0, max=1, value=0.5, marks={0: "0%", 0.25: "25%", 0.5: "50%", 0.75: "75%", 1: "100%"}),
 ], className="my-3")
 
+"""
 sample_size = html.Div([
     dbc.Label("Sample Size"),
     dbc.Input(id="sample-size", type="number", value=10000, step=1000, persistence=True),
 ], className="my-3")
+"""
+
+sample_size = html.Div([
+    dbc.Label("Sample Size", html_for="sample-size", className="input-group-label"),
+    html.Div([
+        html.Div(html.Span("N", className="input-group-text"), className="input-group-prepend"),
+        dbc.Input(id="sample-size", type="number", placeholder=10000, value=10000, step=1000, persistence=True, className="form-control"),
+    ], className="input-group")
+], className="my-3")
+
 
 # Male Advanced
 male_advanced = dbc.Row([
@@ -186,18 +187,18 @@ form = dbc.Form([
                     sample_size,
                     gender_ratio,
                     graph_preview,
-                ], className="p-3 border rounded", style=custom_styles['equal-height-columns']),
+                ], id="input1", className="p-3 border rounded", style=custom_styles['equal-height-columns']),
             ], width=5),
             dbc.Col([
                 html.Div([
-                    html.H5(" or ", className="text-center my-4", style=custom_styles['vertical-center']),
+                    html.H4(" or ", className="text-center my-4", style=custom_styles['vertical-center']),
                 ]),
             ], width=2, className="d-flex align-items-center justify-content-center"),
             dbc.Col([
                 html.Div([
                     html.H4("Upload Data File", style={'textAlign': 'center'}),
                     upload,
-                ], className="p-3 border rounded", style=custom_styles['equal-height-columns']),
+                ], id="input2", className="p-3 border rounded", style=custom_styles['equal-height-columns']),
             ], width=5),
         ], className="mt-4"),
     ], className="my-4"),
@@ -205,7 +206,7 @@ form = dbc.Form([
        dbc.Stack([
             html.Div(children=[
                 dbc.Button("Advanced", id="advanced-button", className="my-3 py-2 mx-1 px-2", color="primary"),
-                dbc.Button("Generate Data", id="submit-btn", className="my-3 py-2 mx-1 px-2", color="success"),
+                dbc.Button("Generate Data", id="submit-btn", className="my-3 py-2 mx-1 px-2", color="success", n_clicks=0),
             ], className="mx-auto"),
         ], direction="horizontal", className="g-0"),
     ]),
@@ -214,20 +215,23 @@ form = dbc.Form([
 alert = dbc.Container([
     dbc.Alert(
         "New Data Generated Successfully!",
-        id="alert-fade",
+        id="alert",
         dismissable=False,
         is_open=False,
         duration=3000,
         fade=True,
-        className="mx-auto"
+        className="mx-auto",
     ),
 ])
 
-layout = html.Div([
-    dcc.Store(id='session', storage_type='session'),
-    form,
-    alert,
-])
+layout = html.Div()
+
+def page_layout():
+    layout = html.Div(id="layout", children=[
+        form,
+        alert,
+    ])
+    return layout
 
 
 BLANK = go.Layout(
@@ -266,10 +270,7 @@ def toggle_collapse(n, is_open):
         return not is_open
     return is_open
 
-
-@callback(
-    Output('session', 'data', allow_duplicate=True),
-    Input("submit-btn", "n_clicks"),
+"""
     [
         State("gender-gap", "value"),
         State("gender-ratio", "value"),
@@ -287,20 +288,40 @@ def toggle_collapse(n, is_open):
         #State("female-n", "value"),
         #State("random-seed", "value"),
     ],
-    prevent_initial_call=True
+"""
+
+@callback(
+    Output('session', 'data', allow_duplicate=True),
+    Input("submit-btn", "n_clicks"),
+    State("gender-gap", "value"),
+    State("gender-ratio", "value"),
+    State("sample-size", "value"),
+    State("upload-data", "contents"),
+    State("upload-data", "filename"),
+    State("session", "data"),
+    prevent_initial_call = True,
 )
 def save_form(n_clicks, gender_gap, gender_ratio, sample_size, upload, filename, data):
+    if n_clicks == 0:
+        raise PreventUpdate
+
     session_id = data.get('session_id', None)
     timestamp = datetime.datetime.now()
 
     params = {"gender_gap": gender_gap, "gender_ratio": gender_ratio, "sample_size": sample_size}
-    print(f"FLAGGGG 1: {params}")
+    #print(f"FLAGGGG 1: {params}")
 
-    print("get_data in save_form()")
+    #print("get_data in save_form()")
     df = get_data(session_id, params=params, upload=upload, filename=filename)
-    print("FLAGGGG 2")
-    print(f"saved df: {df}")
-    print("saved data with form")
+
+    if df is None:
+        data["valid"] = False
+    else:
+        data["valid"] = True
+
+    #print("FLAGGGG 2")
+    #print(f"saved df: {df}")
+    #print("saved data with form")
 
     data['timestamp'] = timestamp
     return data
@@ -309,15 +330,15 @@ def save_form(n_clicks, gender_gap, gender_ratio, sample_size, upload, filename,
 
 
 @callback(
-    Output("alert-fade", "is_open"),
-    [Input("submit-btn", "n_clicks")],
-    [State("alert-fade", "is_open")],
+    Output("alert", "is_open"),
+    Input("submit-btn", "n_clicks"),
+    State("alert", "is_open"),
+
 )
 def toggle_alert(n, is_open):
     if n:
         return not is_open
     return is_open
-
 
 
 @callback(
@@ -384,7 +405,7 @@ def parse_contents(contents, filename, date):
         elif "xls" in filename:
             df = pd.read_excel(io.BytesIO(decoded))
     except Exception as e:
-        print(e)
+        #print(e)
         return html.Div([f"There was an error processing the file: {e}"])
     else:
         return html.Div([
@@ -398,6 +419,7 @@ def parse_contents(contents, filename, date):
                 fixed_rows={'headers': True},
                 fixed_columns={'headers': True, 'data':1},
                 style_table={'height': "450px"},
+                style_cell={"font-family": "Gotham Thin"},
             ),
             html.Hr(),
         ], className="p-30")
@@ -421,3 +443,15 @@ def update_output(list_of_contents, list_of_names, list_of_dates):
         #children = [parse_contents(c,n,d) for c,n,d in zip(list_of_contents, list_of_names, list_of_dates)]
         children = parse_contents(list_of_contents, list_of_names, list_of_dates)
         return children
+
+
+
+dash.register_page(
+    __name__,
+    path=PATH,
+    title=NAME,
+    name=NAME,
+    order=1,
+    layout=layout,
+    default=page_layout(),
+)
