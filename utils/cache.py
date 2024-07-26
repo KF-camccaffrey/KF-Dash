@@ -12,13 +12,16 @@ from io import StringIO
 cache = Cache(dash.get_app().server, config={
     "CACHE_TYPE": "filesystem", # will not work on systems with ephemeral filesystems like Heroku
     "CACHE_DIR": "cache",
+    "CACHE_DEFAULT_TIMEOUT": 3000,
     "CACHE_THRESHOLD": 5  # maximum number of users on the app at a single time
 })
 
-def get_data(session_id, params=None, upload=None, filename=None):
+
+
+def get_data(session_id, params=None, upload=None, filename=None, check=False):
     print(f"get_data call:\n\tsession_id: {session_id}\n\tparams: {params}\n\tupload: {upload}\n\tfilename: {filename}")
 
-    @cache.memoize()#make_name=make_cache_key)
+    @cache.memoize()
     def create_data(session_id):
         print(f"Session {session_id}: creating data...")
         timestamp = datetime.datetime.now()
@@ -64,6 +67,15 @@ def get_data(session_id, params=None, upload=None, filename=None):
         else:
             return df.to_json(), timestamp
 
+    def is_cached(func, *args, **kwargs):
+        key = func.make_cache_key(func.uncached, *args, **kwargs)
+        return cache.has(key)
+
+    if check:
+        print("FLAG 1")
+        check1 = is_cached(create_data, session_id)
+        check2 = is_cached(store_data, session_id)
+        return check1 or check2
 
     if params is None and upload is None:
         print(f"My session_id: {session_id}")
@@ -71,11 +83,15 @@ def get_data(session_id, params=None, upload=None, filename=None):
         df2, timestamp2 = store_data(session_id)
 
         if df1 is None and df2 is None:
+            print("FLAG 2")
+            cache.delete_memoized(create_data, session_id)
+            cache.delete_memoized(store_data, session_id)
             return None
         else:
             df = df1 if timestamp1 > timestamp2 else df2
             df = pd.read_json(StringIO(df))
             print(f"df 3:\n{df}")
+            print("FLAG 3")
             return df
 
     elif upload is not None:

@@ -1,5 +1,76 @@
 import numpy as np
 import pandas as pd
+from faker import Faker
+
+job_family = [
+    "Sales",
+    "Marketing",
+    "Finance",
+    "Human Resources",
+    "Information Technology (IT)",
+    "Customer Service",
+    "Research and Development (R&D)",
+    "Operations",
+    "Legal",
+    "Product Management",
+    "Quality Assurance (QA)",
+    "Supply Chain",
+    "Administration",
+    "Business Development",
+    "Public Relations (PR)"
+]
+
+metros = [
+    ("New York City", "NY"),
+    ("Los Angeles", "CA"),
+    ("Chicago", "IL"),
+    ("Dallas-Fort Worth", "TX"),
+    ("Houston", "TX"),
+    ("Washington, D.C.", "DC"),
+    ("Miami", "FL"),
+    ("Philadelphia", "PA"),
+    ("Atlanta", "GA"),
+    ("Boston", "MA"),
+    ("Phoenix", "AZ"),
+    ("San Francisco Bay Area", "CA"),
+    ("Riverside-San Bernardino", "CA"),
+    ("Detroit", "MI"),
+    ("Seattle", "WA"),
+    ("Minneapolis-St. Paul", "MN"),
+    ("San Diego", "CA"),
+    ("Tampa Bay Area", "FL"),
+    ("Denver", "CO"),
+    ("St. Louis", "MO"),
+    ("Baltimore", "MD"),
+    ("Charlotte", "NC"),
+    ("Orlando", "FL"),
+    ("San Antonio", "TX"),
+    ("Portland", "OR"),
+    ("Sacramento", "CA"),
+    ("Pittsburgh", "PA"),
+    ("Las Vegas", "NV"),
+    ("Cincinnati", "OH"),
+    ("Kansas City", "MO")
+]
+
+def personal_info(N, faker):
+
+    n = len(metros)
+    ind = np.random.randint(n, size=N)
+    metro_arr = np.array(metros)
+    city = metro_arr[ind, 0]
+    state = metro_arr[ind, 1]
+
+    department = np.random.choice(
+        job_family,
+        size=N,
+    )
+
+    eid, job, last = zip(*[(faker.bothify("???#??", "abcdefghijklmnopqrstuvwxyz"), faker.job(), faker.last_name()) for _ in range(N)])
+
+    df = pd.DataFrame({"last": last, "eid": eid, "city": city, "state": state, "department": department, "job": job})
+    return df
+
 
 def basic(m_range, f_range, gender_ratio):
     # total sample N + M + F
@@ -32,7 +103,7 @@ def basic(m_range, f_range, gender_ratio):
     return df
 
 
-def generate_dataset(N=10000, ratio=0.5, gap=0):
+def generate_dataset(N=10000, ratio=0.5, gap=0, seed=42):
     data = []
 
     gender = np.random.choice(
@@ -112,8 +183,23 @@ def generate_dataset(N=10000, ratio=0.5, gap=0):
 
     df["pay"] = pay.round(2)
 
+    fake = Faker()
+    fake.seed_instance(seed)
 
-    return df
+    def fake_first(gender):
+        if gender.lower() in ["male", "man", "m"]:
+            return fake.first_name_male()
+        elif gender.lower() in ["female", "woman", "f", "w"]:
+            return fake.first_name_female()
+        else:
+            return fake.first_name_nonbinary()
+
+    df["first"] = df["gender"].apply(fake_first)
+    personal = personal_info(N, fake)
+    result = pd.concat([df, personal], axis=1)
+
+    cols = ["last", "first", "eid", "gender", "race", "age", "job", "city", "state", "department", "education", "YoE", "level", "pay"]
+    return result[cols]
 
 def linear_predict(df, coeffs, sigma=1000):
     N = df.shape[0]
@@ -136,8 +222,10 @@ if __name__ == "__main__":
     import plotly.express as px
     import matplotlib.pyplot as plt
 
-    df = generate_dataset()
+    df = generate_dataset(N=1000)
+    print(df)
 
+    """
     with pd.option_context('display.max_rows', 100, 'display.max_columns', None):  # more options can be specified also
         print(df.head(100))
 
@@ -150,3 +238,4 @@ if __name__ == "__main__":
     plt.hist(male_pay, bins=bins, alpha=0.5, label='Male Pay')
     plt.hist(female_pay, bins=bins, alpha=0.5, label='Female Pay')
     plt.show()
+    """

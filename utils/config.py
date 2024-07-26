@@ -2,6 +2,11 @@
 #>----------------->     Theme Options     <-----------------<#
 BLUE = "#007da4"
 PINK = "#920a7a"
+RED = "#971310"
+YELLOW = "#ddb307"
+GRAY = "#919191"
+GREEN ="#08a384"
+FORESTGREEN = "#00634f"
 
 def alpha(color, a):
     if color.startswith("#"):
@@ -63,3 +68,16 @@ HOVERLABEL = {
     'font_size': 13,
     'font_family': "Geist Mono",
 }
+
+
+
+#>----------------->     Styled Print Statements      <-----------------<#
+
+def styled(text, color, bold=False):
+    weight = "22" if not bold else "1"
+    colors = ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"]
+    try:
+        cc = colors.index(color) + 30
+    except ValueError:
+        cc = 0
+    return f"\033[{weight};{cc}m{text}\033[0m"
