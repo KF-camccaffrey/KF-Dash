@@ -1,28 +1,159 @@
+:root {
+    --green: #08a384;
+    --forestgreen: #00634f;
+    --darkmidnight: #00173b;
+    --graybackground: #F8F8F8;
+    --coolgray: #dad8d6;
+    --headerheight: 65px;
+    --footerheight: 63px;
+    --pageheight: calc(100vh - var(--headerheight) - var(--footerheight));
+    --blue: #007da4;
+    --pink: #920a7a;
+}
+
+
+html, body {
+    font-family: Gotham;
+    margin:0;
+    padding:0;
+    height: 100%;
+    background-color: var(--graybackground);
+}
+
+h1, h2 {
+    font-family: Gotham Bold;
+    color: var(--green);
+}
+
+h3, h4 {
+    font-family: Gotham Medium;
+}
+
+h5 {
+    font-family: Gotham Light;
+}
+
+h6 {
+    font-family: Gotham ExtraLight;
+}
+
+.blue {
+    color: var(--blue);
+}
+
+.pink {
+    color: var(--pink);
+}
+
+.tabular {
+    font-family: Gotham;
+    font-variant-numeric: tabular-nums;
+}
+
+#metric-display {
+    /*
+    border: 2px solid #DEE2E6;
+    border-radius: 10px;
+    padding: 5px;
+    background-color: var(--graybackground);
+    */
+
+    .metric-label {
+        display: inline-block;
+        width: 200px;
+    }
+    .metric-value {
+        display: inline-block;
+        text-align: right;
+        width: 150px;
+    }
+    .n-label {
+        display: inline-block;
+        width: 20px;
+        margin-left: 50px;
+    }
+    .n-value {
+        display: inline-block;
+        text-align: right;
+        width: 60px;
+    }
+}
+
+#nav-title {
+    font-family: Gotham Medium;
+    color: var(--forestgreen);
+}
+
+#footer {
+    background-color: var(--forestgreen);
+}
+
+#page-content {
+    margin-top: var(--headerheight);
+    min-height: var(--pageheight);
+    overflow-y: auto;
+}
+
+#input1, #input2 {
+    background-color: white;
+}
+
+
+#sidebar {
+    height: 100%;
+    background-color: #e1e1e1;
+    border-right: 2px solid #DEE2E6;
+}
+
+#plot-main, #plot-side {
+    height: 100%;
+}
+
+.plot-frame {
+    border: 2px solid #DEE2E6;
+    padding: 0px;
+    background-color: white;
+    margin-top: 5px;
+    border-radius: 10px;
+    height: 98%;
+}
+
+#dumbbell {
+    height: 85%;
+    width: 100%;
+}
+
+#boxplot {
+    height: 60%;
+    width: 100%;
+}
+
 
 .btn,-primary {
     background-color: white;
     border-color: #dad8d6;
     border-width: 2px;
     border-radius: 15px;
-    color: #00634f;
+    color: var(--green);
+    font-family: Gotham Medium;
 }
 
 .btn-primary:hover, .btn-primary:active, .btn-primary:active:focus, .btn-primary.active, .open>.dropdown-toggle.btn-primary {
     background-color: #dad8d6;
     border-color: #dad8d6;
-    color: #00173b;
+    color: var(--darkmidnight);
 }
 
 .btn-success {
-    background-color: #08a384;
-    border-color: #00634f;
+    background-color: var(--green);
+    border-color: var(--forestgreen);
     border-width: 2px;
     border-radius: 15px;
     color: white;
 
 }
 
-
+/*
 .nav-tabs.nav-link {
     color: #e7e7e7;
     background-color: #08a384;
@@ -35,6 +166,7 @@
     background-color: #00173b;
     font-style: italic;
 }
+*/
 
 .rc-slider {
     background-color: #e7e7e7;
@@ -46,25 +178,25 @@
 
 /* Slider Handle */
 .rc-slider-handle {
-    border: solid 3px #00634f;
+    border: solid 3px var(--forestgreen);
 }
 
 /* Slider Handle (Hover) */
 .rc-slider-handle:hover, .rc-slider-handle:focus, .rc-slider-handle:active, .rc-slider-handle:active:focus, .rc-slider-handle-click-focused, .rc-slider-handle-click-focused:focus {
-    border: solid 3px #00634f;
-    box-shadow: 0 0 0 2px #08a384;
+    border: solid 3px var(--forestgreen);
+    box-shadow: 0 0 0 2px var(--green);
 }
 
 /* Slider Handle (Active) */
 .rc-slider-handle-dragging, .rc-slider-handle-dragging:active, .rc-slider-handle-dragging:focus, .rc-slider-handle-dragging:hover, .rc-slider-handle-dragging:active:focus, .rc-slider-handle-dragging.rc-slider-handle-dragging.rc-slider-handle-dragging {
-    border: solid 3px #00634f;
-    box-shadow: 0 0 0 4px #08a384;
+    border: solid 3px var(--forestgreen);
+    box-shadow: 0 0 0 4px var(--green);
 }
 
 
 
 .rc-slider-track {
-    background-color: #08a384;
+    background-color: var(--green);
 }
 
 .rc-slider-dot {
@@ -73,11 +205,216 @@
 }
 
 .rc-slider-dot-active {
-    background-color: #00634f;
-    border-color: #08a384;
+    background-color: var(--forestgreen);
+    border-color: var(--green);
 }
 /*
 .rc-slider-mark-text {
 
 }
 */
+
+/*
+.firstTab{
+    line-height: 43px;
+    text-align:center;
+    height:60px;
+    width:210px;
+    -webkit-clip-path: polygon(0% 0%, 75% 0%, 100% 50%, 75% 100%, 0% 100%);
+    clip-path: polygon(0% 0%, 75% 0%, 100% 50%, 75% 100%, 0% 100%);
+}
+
+.middleTab{
+    line-height: 43px;
+    text-align:center;
+    margin-left: -30px !important;
+    height:60px;
+    width:210px;
+    -webkit-clip-path: polygon(75% 0%, 100% 50%, 75% 100%, 0% 100%, 25% 50%, 0% 0%);
+    clip-path: polygon(75% 0%, 100% 50%, 75% 100%, 0% 100%, 25% 50%, 0% 0%);
+}
+
+.lastTab{
+    line-height: 43px;
+    text-align:center;
+    margin-left: -85px !important;
+    height:60px;
+    width:220px;
+    -webkit-clip-path: polygon(25% 0%, 100% 1%, 100% 100%, 25% 100%, 55% 50%);
+    clip-path: polygon(25% 0%, 100% 0%, 100% 100%, 25% 100%, 50% 50%);
+}
+*/
+
+/*
+
+div.main {
+    margin-right:30px;
+}
+ol > li {
+    display: table-cell;
+    height: 30px;
+    position: relative;
+    padding: 0px;
+    margin: 0px;
+    text-align: center;
+    border: 1px solid #d68a3a;
+}
+ol > li > div {
+    position:relative;
+    line-height: 30px;
+    height:100%;
+    width: 100%;
+}
+ol>li:hover {
+    background-color: #d68a3a;
+    cursor: pointer;
+    color: white;
+}
+ol {
+    display: table;
+    width: 100%;
+    padding: 0px;
+    margin: 0px;
+    position: relative;
+}
+ol > li > div:after, ol > li > div:before {
+    content:"";
+    display:inline-block;
+    border-width: 16px;
+    border-style: solid;
+    width: 0px;
+    height: 0px;
+    left: 100%;
+    top: -1px;
+    position: absolute;
+    z-index: 1;
+}
+ol > li > div:after, ol > li:hover > div:before {
+    border-color: transparent transparent transparent #d68a3a;
+}
+ol > li > div:before {
+    border-width: 14px;
+    display: block;
+    border-color: transparent transparent transparent #ffffff;
+    z-index: 2;
+    top:1px;
+}
+*/
+
+div > .ol > .li {
+    display: table-cell;
+    height: 30px;
+    position: relative;
+    padding: 0px;
+    margin: 0px;
+    text-align: center;
+    border: 1px solid var(--forestgreen); /* black border */
+    background-color: #e1ebe5;
+    transition: background-color 0.2s ease;
+}
+div > .ol > .li > a {
+    color: var(--forestgreen); /* black border */
+    position:relative;
+    line-height: 30px; /* equal to the list item's height */
+    height:100%;
+    width: 100%;
+}
+
+/*
+div > .ol > .li:hover, div > .ol > .li.left-of-active:hover {
+    background-color: black;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+*/
+
+/*
+div > .ol > .li:hover > .nav-link, div > .ol > .li.left-of-active:hover > .nav-link {
+    color: white;
+}
+*/
+
+div > .ol {
+    display: table;
+    width: 100%;
+    padding: 0px;
+    margin: 0px;
+    position: relative;
+    transition: background-color 0.2s ease;
+}
+
+div > .ol > .li > a:after, div > .ol > .li > a:before, div > .ol > .li.li.left-of-active > a:after, div > .ol > .li.li.left-of-active > a:before {
+    content:"";
+    display:inline-block;
+    border-width: 24px; /* Increase this value to make the arrow larger */
+    border-style: solid;
+    width: 0px;
+    height: 0px;
+    left: 100%;
+    top: -1px;
+    position: absolute;
+    z-index: 1;
+    transition: border-color 0.2s ease;
+}
+
+/*
+div > .ol > .li > a:after, div > .ol > .li:hover > a:before, div > .ol > .li.left-of-active > a:after, div > .ol > .li.left-of-active:hover > a:before
+*/
+div > .ol > .li > a:after, div > .ol > .li.left-of-active > a:after {
+    border-color: transparent transparent transparent var(--forestgreen); /* black border */
+    transition: border-color 0.2s ease;
+}
+
+
+div > .ol > .li > a:before {
+    border-width: 22px; /* This should be 2px less than the above value */
+    display: block;
+    border-color: transparent transparent transparent #e1ebe5;
+    z-index: 2;
+    top:1px;
+    transition: border-color 0.2s ease;
+}
+
+div > .ol > .li.li.left-of-active > a:before {
+    border-width: 22px; /* This should be 2px less than the above value */
+    display: block;
+    border-color: transparent transparent transparent var(--green);
+    z-index: 2;
+    top:1px;
+    transition: border-color 0.2s ease;
+}
+
+
+div > .ol > .li > .active:after, div > .ol > .li > .active:before {
+    border-color: transparent transparent transparent var(--forestgreen) !important;
+    transition: border-color 0.2s ease;
+}
+
+div > .ol > .li > .active {
+    background-color: var(--forestgreen);
+    cursor: pointer;
+    color: white;
+    font-style: italic;
+    transition: background-color 0.2s ease;
+}
+
+div > .ol > .li.left-of-active {
+    /* Styles for tabs to the right of the active tab */
+    background-color: var(--green);
+    transition: background-color 0.2s ease;
+    display: table-cell;
+    height: 30px;
+    position: relative;
+    padding: 0px;
+    margin: 0px;
+    text-align: center;
+    border: 1px solid var(--forestgreen); /* black border */
+}
+
+div > .ol > .li.left-of-active > a {
+    color: white;
+    position:relative;
+    line-height: 30px; /* equal to the list item's height */
+    height:100%;
+    width: 100%;
+}
