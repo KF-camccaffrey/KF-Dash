@@ -9,8 +9,8 @@ import numpy as np
 import plotly.express as px
 from scipy.stats import kruskal
 from scikit_posthocs import posthoc_dunn
-from utils.config import GRAPHCONFIG, RED, GRAY, YELLOW
-from utils.cache import get_data
+from utils.config import GRAPHCONFIG, RED, GRAY, YELLOW, BASICCOMPS, EMPTYFIG
+from utils.cache import query_data, query_comparisons
 from utils.comparisons import create_comparisons, effect_bars
 
 
@@ -36,6 +36,8 @@ barchart = html.Div([
             {'label': "Gender", 'value': 'gender'},
             {'label': "Race/Ethnicity", 'value': 'race'},
             {'label': "Job Level", 'value': 'level'},
+            {'label': "Department", 'value': 'department'},
+            {'label': "All", 'value': 'all'},
         ],
         value='gender',
         clearable=False,
@@ -73,7 +75,7 @@ def page_layout():
 )
 def update_heatmap(data):
     session_id = data.get('session_id', None)
-    df = get_data(session_id)
+    df = query_data(session_id)
 
     male_pay = df[df['gender'] == 'Male']['pay']
     female_pay = df[df['gender'] == 'Female']['pay']
@@ -101,22 +103,16 @@ def update_heatmap(data):
 def update_barchart(selected_category, data):
     # Create the boxplot using Plotly
     #print(selected_category)
-    #print("get_data in update_barchart()")
+    #print("query_data in update_barchart()")
     session_id = data.get('session_id', None)
-    df = get_data(session_id)
+    timestamp = data.get('timestamp', None)
 
-    #print("yeahhh")
+    comparisons = query_comparisons(session_id, timestamp, BASICCOMPS)
 
-    if df is None:
+    if comparisons is None:
         return {}
 
-    #comparisons = {'gender': {}, 'race':{}, 'education': {}, "level": {}}
-    #print("whattttt")
-    comparisons = {selected_category: {}}
-    comparisons = create_comparisons(df, 'pay', 'gender', comparisons)
-    fig = effect_bars(comparisons, method='median_comp')
-
-
+    fig = effect_bars(comparisons, category=selected_category, method='median_comp')
     return fig
 
 

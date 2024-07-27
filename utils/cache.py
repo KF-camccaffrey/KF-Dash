@@ -8,6 +8,7 @@ import base64
 import io
 import dash
 from io import StringIO
+from utils import comparisons
 
 cache = Cache(dash.get_app().server, config={
     "CACHE_TYPE": "filesystem", # will not work on systems with ephemeral filesystems like Heroku
@@ -15,6 +16,98 @@ cache = Cache(dash.get_app().server, config={
     "CACHE_DEFAULT_TIMEOUT": 3000,
     "CACHE_THRESHOLD": 5  # maximum number of users on the app at a single time
 })
+
+# define custom exception
+class InvalidInputError(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
+def get_key(func, *args, **kwargs):
+    return func.make_cache_key(func.uncached, *args, **kwargs)
+
+def query_data(session_id, params=None, upload=None, filename=None, check=False):
+    # check if data needs to be overwritten
+    doOverWrite = not (params is None and (upload is None or filename is None)) and not check
+
+    @cache.memoize()
+    def create_data(session_id):
+        if not doOverWrite:
+            raise InvalidInputError("doOverWrite is False")
+
+        print(f"Session {session_id}: creating data...")
+
+        # store data from file
+        if upload is not None and filename is not None:
+            print(f"Storing data from file")
+            try:
+                content_type, content_string = upload.split(",")
+                decoded = base64.b64decode(content_string)
+                if "csv" in filename:
+                    df = pd.read_csv(io.StringIO(decoded.decode("utf-8")))
+                elif "xls" in filename:
+                    df = pd.read_excel(io.BytesIO(decoded))
+                else:
+                    raise InvalidInputError("Invalid file type.")
+                return df.to_json(), datetime.datetime.now()
+            except Exception as e:
+                print(f"There was an error when storing the file data: {e}")
+                raise
+
+        # generate and save synthetic data
+        if params is not None:
+            print(f"Creating synthetic data")
+            try:
+                sample_size = params["sample_size"]
+                gender_ratio = params["gender_ratio"]
+                gender_gap = params["gender_gap"]
+                np.random.seed(42)
+                df = generator.generate_dataset(N=sample_size, ratio=gender_ratio, gap=gender_gap)
+                return df.to_json(), datetime.datetime.now()
+            except Exception as e:
+                print(f"There was an error when creating synthetic data: {e}")
+                raise
+
+        # input was something else unexpected
+        raise InvalidInputError("'params' and one of 'upload' or 'filename' were None")
+
+    # get cache key
+    key = get_key(create_data, session_id)
+
+    # return cache status if optional arg 'check' is true
+    if check:
+        return cache.has(key)
+
+    # delete existing cached data if it needs to be overwritten
+    if doOverWrite:
+        cache.delete(key)
+
+    # call create_data() and convert json to dataframe
+    try:
+        data, timestamp = create_data(session_id)
+        return pd.read_json(StringIO(data)), timestamp
+    except InvalidInputError as e:
+        print(f"InvalidInputError during caching, going to fallback. Message: {e}")
+        return None, datetime.datetime.min
+
+
+
+def query_comparisons(session_id, timestamp, comps):
+
+    @cache.memoize()
+    def get_comparisons(session_id, timestamp):
+        df, _ = query_data(session_id)
+        result = comparisons.create_comparisons(df, "pay", "gender", comps)
+        return result
+
+    try:
+        data = get_comparisons(session_id, timestamp)
+        return data
+    except Exception as e:
+        print(f"Error while querying comparisons. Message: {e}")
+        return None
+
+
 
 
 

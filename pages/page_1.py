@@ -10,14 +10,14 @@ import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
 from dash.dependencies import MATCH, ALL
 from utils.g_and_h import dgh
-from utils.config import GRAPHCONFIG, BLUE, PINK, alpha
+from utils.config import GRAPHCONFIG, BLUE, PINK, alpha, BASICCOMPS
 import plotly.graph_objs as go
 from utils import generator
 import base64
 import io
 import datetime
 from scipy.stats import norm
-from utils.cache import get_data
+from utils.cache import query_data, query_comparisons
 
 NAME = "Data Generation"
 PATH = "/data-generation"
@@ -306,24 +306,26 @@ def save_form(n_clicks, gender_gap, gender_ratio, sample_size, upload, filename,
         raise PreventUpdate
 
     session_id = data.get('session_id', None)
-    timestamp = datetime.datetime.now()
+    #timestamp = datetime.datetime.now()
 
     params = {"gender_gap": gender_gap, "gender_ratio": gender_ratio, "sample_size": sample_size}
     #print(f"FLAGGGG 1: {params}")
 
-    #print("get_data in save_form()")
-    df = get_data(session_id, params=params, upload=upload, filename=filename)
+    #print("query_data in save_form()")
+    df, timestamp = query_data(session_id, params=params, upload=upload, filename=filename)
+    _ = query_comparisons(session_id, timestamp, BASICCOMPS)
 
     if df is None:
         data["valid"] = False
     else:
         data["valid"] = True
+        data['timestamp'] = timestamp
 
     #print("FLAGGGG 2")
     #print(f"saved df: {df}")
     #print("saved data with form")
 
-    data['timestamp'] = timestamp
+    print("Data saved successfully...")
     return data
 
 

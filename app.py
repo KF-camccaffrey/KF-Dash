@@ -18,7 +18,7 @@ external_stylesheets = [
 app = dash.Dash(__name__, use_pages=True, external_stylesheets=external_stylesheets)
 app.config.suppress_callback_exceptions = True
 
-from utils.cache import get_data
+from utils.cache import query_data
 
 PAGES = [page for page in dash.page_registry.values()]
 PATHS, ORDERS, NAMES = [list(page[key] for page in PAGES) for key in ["path", "order", "name"]]
@@ -100,7 +100,7 @@ def generate_session_id(path, data):
     timestamp = data.get("timestamp", datetime.datetime.now())
     valid = data.get("valid", False)
 
-    valid = get_data(session_id, check=True) if valid else valid
+    valid = query_data(session_id, check=True) if valid else valid
 
     data = {"session_id": session_id, "timestamp": timestamp, "valid": valid}
 
@@ -210,7 +210,7 @@ def update_session(data):
     timestamp = data.get("timestamp", datetime.datetime.now())
     valid = data.get("valid", False)
 
-    valid = get_data(session_id, check=True) if valid else valid
+    valid = query_data(session_id, check=True) if valid else valid
 
     data = {"session_id": session_id, "timestamp": timestamp, "valid": valid}
     return data

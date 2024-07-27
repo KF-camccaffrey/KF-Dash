@@ -6,8 +6,8 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 import numpy as np
 import plotly.express as px
-from utils.cache import get_data
-from utils.config import BLUE, PINK, FORESTGREEN, GRAPHCONFIG
+from utils.cache import query_data
+from utils.config import BLUE, PINK, FORESTGREEN, GRAPHCONFIG, EMPTYFIG
 
 NAME = "Multivariate Regression"
 PATH = "/multivariate-regression"
@@ -47,7 +47,7 @@ def page_layout():
     layout = html.Div(id="layout", children=[
         dbc.Container([
             inputs,
-            dcc.Graph(id='scatterplot', config=GRAPHCONFIG)
+            dcc.Graph(id='scatterplot', config=GRAPHCONFIG, figure=EMPTYFIG)
         ], className="my-4"),
     ])
 
@@ -65,7 +65,7 @@ def update_scatter(x_axis, color_by, n_clicks, data):
     session_id = data.get('session_id', None)
 
     print("get data for update scatter")
-    df = get_data(session_id)
+    df, _ = query_data(session_id)
     if df is None:
         print("was none!")
         return {}

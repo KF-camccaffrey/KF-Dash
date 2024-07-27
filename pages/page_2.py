@@ -1,19 +1,20 @@
 
 
 import dash
-from dash import Dash, dcc, html, Input, Output, State, callback, dash_table, callback_context
+from dash import Dash, dcc, html, Input, Output, State, callback, dash_table, ctx
 from utils import generator
-from utils.config import BLUE, PINK, GRAPHCONFIG, HOVERLABEL
+from utils.config import BLUE, PINK, GRAPHCONFIG, HOVERLABEL, BASICCOMPS, EMPTYFIG
 import os
+from dash.exceptions import PreventUpdate
 
 import plotly.express as px
 import plotly.figure_factory as ff
 import numpy as np
 import pandas as pd
 import dash_bootstrap_components as dbc
-from utils.cache import get_data
+from utils.cache import query_data, query_comparisons
 
-from utils.comparisons import create_comparisons, dumbbell_chart
+from utils.comparisons import create_comparisons, dumbbell_chart, pie_chart
 
 NAME = "Visualizations"
 PATH = "/visualizations"
@@ -111,7 +112,7 @@ sideinputs = html.Div(className="pl-5", children=[
 
 dumbbells = dcc.Graph(
     id="dumbbell",
-    figure={},
+    figure=EMPTYFIG,
     config=GRAPHCONFIG,
     className="px-3 py-3"
 )
@@ -123,7 +124,15 @@ boxplots = dcc.Graph(
     className="px-3 py-3"
 )
 
+piechart = dcc.Graph(
+    figure={},
+    id='piechart',
+    config=GRAPHCONFIG,
+    className="px-3 py-3"
+)
+
 caption = html.Div(id="caption", className="px-3 py-3")
+level = html.Div(id="level", hidden=True)
 metrics = html.Div(id="metrics", className="px-3 py-3")
 
 
@@ -141,6 +150,7 @@ def page_layout():
             ]),
             dbc.Col(id="plot-side", width=4, children=[
                 html.Div(className="plot-frame", children=[
+                    level,
                     metrics,
                     boxplots,
                 ])
@@ -171,8 +181,8 @@ def update_chart(data):
 
     #print(f"update chart session iD: {session_id}")
 
-    #print("get_data in update_chart()")
-    df = get_data(session_id)
+    #print("query_data in update_chart()")
+    df, _ = query_data(session_id)
 
     if df is None:
         return {}
@@ -200,8 +210,8 @@ def update_table(data):
     session_id = data.get('session_id', None)
     #print(f"update table session iD: {session_id}")
 
-    #print("get_data in update_table()")
-    df = get_data(session_id)
+    #print("query_data in update_table()")
+    df, _ = query_data(session_id)
     if df is None:
         return []
     else:
@@ -219,9 +229,9 @@ def update_table(data):
 def update_boxplot(selected_category, data):
     # Create the boxplot using Plotly
     #print(selected_category)
-    #print("get_data in update_boxplot()")
+    #print("query_data in update_boxplot()")
     session_id = data.get('session_id', None)
-    df = get_data(session_id)
+    df = query_data(session_id)
 
     if df is None:
         return {}
@@ -255,36 +265,18 @@ def update_boxplot(selected_category, data):
 @callback(
     Output('boxplot', 'figure'),
     Input('category-input', 'value'),
-    Input('dumbbell', 'hoverData'),
-    Input('dumbbell', 'clickData'),
+    Input('level', 'children'),
     State('session', 'data'),
 )
-def update_boxplot(category, hoverData, clickData, data):
+def update_boxplot(category, lvl, data):
     session_id = data.get('session_id', None)
-    df = get_data(session_id)
+    df, _ = query_data(session_id)
 
     if df is None:
         return {}
 
-    if clickData is None and hoverData is None:
-        pass
-    elif clickData is None:
-        clickData = hoverData
-        lvl = clickData["points"][0]['y']
-        if lvl == "Overall":
-            pass
-        elif lvl not in df[category].values:
-            pass
-        else:
-            df =  df[df[category] == lvl]
-    else:
-        lvl = clickData["points"][0]['y']
-        if lvl == "Overall":
-            pass
-        elif lvl not in df[category].values:
-            pass
-        else:
-            df = df[df[category] == lvl]
+    if lvl != "Overall":
+        df = df[df[category] == lvl]
 
     fig = px.box(df, x='gender', y='pay', color='gender',
                  labels={'pay': 'Pay ($)'},
@@ -313,85 +305,95 @@ def update_boxplot(category, hoverData, clickData, data):
     return fig
 
 @callback(
-    Output('metrics', 'children'),
+    Output("level", "children"),
     Input('category-input', 'value'),
-    Input('method-input', 'value'),
     Input('dumbbell', 'hoverData'),
     Input('dumbbell', 'clickData'),
-    State('session', 'data'),
 )
-def update_metrics(category, method, hoverData, clickData, data):
-    session_id = data.get('session_id', None)
-    df = get_data(session_id)
-
-    if df is None:
-        return []
-
+def update_level(category, hoverData, clickData):
     if clickData is None and hoverData is None:
         lvl = "Overall"
-        pass
-    elif clickData is None:
-        clickData = hoverData
-        lvl = clickData["points"][0]['y']
-        if lvl == "Overall":
-            pass
-        elif lvl not in df[category].values:
-            lvl = "Overall"
-            pass
-        else:
-            df =  df[df[category] == lvl]
     else:
+        if clickData is None:
+            clickData = hoverData
+
         lvl = clickData["points"][0]['y']
-        if lvl == "Overall":
-            pass
-        elif lvl not in df[category].values:
+        if ctx.triggered_id == "category-input":
             lvl = "Overall"
-            pass
-        else:
-            df = df[df[category] == lvl]
+    return lvl
 
-    male = df[df["gender"] == "Male"]
-    female = df[df["gender"] == "Female"]
-    if method == "mean":
-        male_metric = male["pay"].mean()
-        female_metric = female['pay'].mean()
-    elif method == "median":
-        male_metric = male["pay"].median()
-        female_metric = female["pay"].median()
-    else:
-        raise ValueError("Invalid method selected")
 
-    ratio = round(female_metric / male_metric, 2)
-    male_metric = round(male_metric, 2)
-    female_metric = round(female_metric, 2)
-    n_male = len(male)
-    n_female = len(female)
+@callback(
+    Output('dumbbell', 'clickData'),
+    Input('category-input', 'value')
+)
+def reset_dumbbell_data(category):
+    return None
+
+
+
+@callback(
+    Output('metrics', 'children'),
+    Input('category-input', 'value'),
+    Input('level', 'children'),
+    Input('method-input', 'value'),
+    State('session', 'data'),
+)
+def update_metrics(category, lvl, method, data):
+    session_id = data.get('session_id', None)
+    timestamp = data.get('timestamp', None)
+    comparisons = query_comparisons(session_id, timestamp, BASICCOMPS)
+
+    if comparisons is None:
+        return []
+
+    metrics = comparisons[category]
+    lvls = metrics["levels"]
+
+    i = np.where(lvls == lvl)[0][0]
+    keys = [f"{method}_male", f"{method}_female", f"{method}_gap", "n_male", "n_female", f"{method}_gap_perc"]
+    metric_male, metric_female, metric_gap, n_male, n_female, ratio = (metrics[key][i] for key in keys)
+
+    fig = pie_chart(comparisons, category, lvl)
 
     layout = [
-        html.H5(f"Level Summary"),
+        html.H5("Level Summary"),
         html.H4(lvl),
         html.Div(id="metric-display", className="mx-2", children=[
+            dbc.Row([
+            dbc.Col(width=7, children=[
             html.H5([
                 html.Div("Avg. Men's Pay:", className="metric-label blue"),
-                html.Div('${:20,.2f}'.format(male_metric), className="metric-value tabular blue"),
-                html.Div("N:", className="n-label blue"),
-                html.Div('{:20}'.format(n_male),  className="n-value tabular blue")
+                html.Div('${:20,.2f}'.format(metric_male), className="metric-value tabular blue"),
+                #html.Div("N:", className="n-label blue"),
+                #html.Div('{:20}'.format(n_male),  className="n-value tabular blue")
             ]),
             html.H5([
                 html.Div("Avg. Women's Pay:", className="metric-label pink"),
-                html.Div('${:20,.2f}'.format(female_metric), className="metric-value tabular pink"),
-                html.Div("N:", className="n-label pink"),
-                html.Div('{:20}'.format(n_female),  className="n-value tabular pink")
+                html.Div('${:20,.2f}'.format(metric_female), className="metric-value tabular pink"),
+                #html.Div("N:", className="n-label pink"),
+                #html.Div('{:20}'.format(n_female),  className="n-value tabular pink")
             ]),
-            html.Hr(style={'margin': '10px 0', "width": "350px"}),
+            ]),
+            dbc.Col(width=5, children=[
+                dcc.Graph(
+                    figure=fig,
+                    config=GRAPHCONFIG,
+                    className="px-3 py-3"
+                )
+            ])
+            ]),
+
+
+            html.Hr(style={'margin': '10px 0', "width": "330px"}),
             html.H5([
                 html.Div("Wage Gap:", className="metric-label"),
-                html.Div('${:20,.2f}'.format(abs(male_metric-female_metric)), className="metric-value tabular")
+                html.Div('${:20,.2f}'.format(abs(metric_gap)), className="metric-value tabular")
             ]),
         ]),
         html.Div(className="mt-5", style={"textAlign": "center"}, children=[
             "A woman makes ",
-            html.Span(f"${ratio}", className="tabular pink"),
+            html.Span("${:.2f}".format(ratio), className="tabular pink"),
             " for every ",
             html.Span("$1.00", className="tabular blue"),
             " a man makes."
@@ -400,12 +402,25 @@ def update_metrics(category, method, hoverData, clickData, data):
 
     return layout
 
+
 @callback(
-    Output('dumbbell', 'clickData'),
-    Input('category-input', 'value')
+    Output('piechart', 'figure'),
+    Input('category-input', 'value'),
+    Input('level', 'children'),
+    State('session', 'data'),
 )
-def reset_dumbbell_data(category):
-    return None
+
+def update_piechart(category, lvl, data):
+    session_id = data.get('session_id', None)
+    timestamp = data.get('timestamp', None)
+    comparisons = query_comparisons(session_id, timestamp, BASICCOMPS)
+
+    if comparisons is None:
+        return {}
+
+    fig = pie_chart(comparisons, category, lvl)
+    return fig
+
 
 @callback(
     Output('caption', 'children'),
@@ -429,15 +444,13 @@ def update_caption(category, method):
 )
 def update_dumbell(category, method, sort, data):
     session_id = data.get('session_id', None)
-    df = get_data(session_id)
+    timestamp = data.get('timestamp', None)
+    comparisons = query_comparisons(session_id, timestamp, BASICCOMPS)
 
-    if df is None:
+    if comparisons is None:
         return {}
 
-    comparisons = {category: {}}
-    comparisons = create_comparisons(df, 'pay', 'gender', comparisons)
     fig = dumbbell_chart(comparisons, category, method, sort)
-
     return fig
 
 

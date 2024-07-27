@@ -1,4 +1,8 @@
 
+import plotly.express as px
+import plotly.figure_factory as ff
+import plotly.graph_objects as go
+
 #>----------------->     Theme Options     <-----------------<#
 BLUE = "#007da4"
 PINK = "#920a7a"
@@ -81,3 +85,27 @@ def styled(text, color, bold=False):
     except ValueError:
         cc = 0
     return f"\033[{weight};{cc}m{text}\033[0m"
+
+
+#>----------------->      Comparisons      <-----------------<#
+BASICCOMPS = {"gender": {}, "race": {}, "department": {}, "level": {}, "education": {}}
+
+
+EMPTYFIG = {
+    'data': [],
+    'layout': go.Layout(
+        xaxis=dict(showgrid=False, zeroline=False, showline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showline=False, showticklabels=False),
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        annotations=[go.layout.Annotation(
+                text="No Data Available",
+                x=0.5, y=0.5,
+                font=dict(size=20, color=GRAY, family="Gotham"),
+                showarrow=False,
+                xref="paper", yref="paper",
+                align="center"
+        )],
+        margin=dict(l=20, r=20, t=40, b=20)  # Adjust margins
+    )
+}

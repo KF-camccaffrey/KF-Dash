@@ -2,9 +2,10 @@
 
 import numpy as np
 import pandas as pd
-from utils.config import GRAPHCONFIG, BLUE, PINK, YELLOW, RED, GRAY, alpha
+from utils.config import GRAPHCONFIG, BLUE, PINK, YELLOW, RED, GRAY, alpha, FORESTGREEN
 import plotly.express as px
 import plotly.figure_factory as ff
+import plotly.graph_objects as go
 import os
 from pprint import pprint
 
@@ -36,7 +37,6 @@ def create_comparisons(df, pay, gender, comparisons):
             raise ValueError(f"Categories {missing} are missing in the column '{col}'. Valid categories: {all_lvls}")
 
         n_lvls = len(lvls)
-        print(n_lvls)
         lvls = np.array(["Overall"] + lvls)
         base_idx = np.where(lvls == base_lvl)[0][0]
         dummies_idx = np.where(lvls != base_lvl)[0][1:]
@@ -187,8 +187,11 @@ def holm_bonferonni(p_values):
     return adjusted_p_values[np.argsort(sorted_indices)]
 
 
-def effect_bars(comparisons, method):
-    unit = "$" if method == "median_diff" else "%"
+def effect_bars(comparisons, category="all", method="median_comp"):
+    if category != "all":
+        comparisons = {category: comparisons[category]}
+
+    unit = "$" if method == "median_comp" else "%"
     x_title = f"Differences in Median Pay ({unit})"
 
     ncol = len(comparisons)
@@ -355,6 +358,59 @@ def dumbsize(pmax, n, nmax):
     return vals[i]
 
 
+def pie_chart(comparisons, selected_category, lvl):
+    metrics = comparisons[selected_category]
+    lvls = metrics["levels"]
+    i = np.where(lvls == lvl)[0][0]
+
+    labels = ["Male", "Female", "Other"]
+    keys = ["n_male", "n_female", "n_other"]
+    counts = np.array([metrics[key][i] for key in keys])
+    total = metrics["n"][i]
+    colors = [BLUE, PINK, FORESTGREEN]
+
+    percs = np.round(100 * counts/total, 1)
+
+    # Define the pie chart
+    fig = go.Figure()
+
+    # Add the pie chart trace
+    fig.add_trace(go.Pie(
+        labels=labels,
+        values=counts,
+        domain=dict(x=[0, 1], y=[0, 1]),
+        hole=0.5,  # This creates the donut shape
+        textinfo='percent',
+        hoverinfo='value',
+        marker=dict(colors=colors),
+        textfont=dict(family="Gotham", size=13),
+        hovertemplate= ["{:20,}".format(c).strip() + '<extra></extra>' for c in counts], #'%{value:20,}',  # Custom hover text format
+        hoverlabel_font_size=13,
+        hoverlabel_font_family="Gotham",
+    ))
+
+    fig.update_layout(
+        annotations=[dict(
+            text="{:20,}".format(total).strip(),
+            x=0.5,
+            y=0.5,
+            font_size=22,
+            font_family="Gotham",
+            showarrow=False,
+            xref="paper",
+            yref="paper",
+        )],
+        showlegend=False,
+        height=200,
+        width=200,
+        margin=dict(l=0, r=0, t=0, b=0),
+        paper_bgcolor="gray",
+        autosize=False,
+    )
+
+    return fig
+
+
 
 if __name__ == "__main__":
 
@@ -374,6 +430,10 @@ if __name__ == "__main__":
     result = create_comparisons(df, 'pay', 'gender', comparisons)
     np.set_printoptions(precision=2, suppress=True, threshold=np.inf)
     pprint(result, width=500)
+
+    fig1 = pie_chart(result, "race", "Black")
+    fig1.show()
+
 
     #fig1 = effect_bars(result, "median_comp")
     #fig1.show()
