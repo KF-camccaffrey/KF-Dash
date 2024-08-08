@@ -109,3 +109,16 @@ EMPTYFIG = {
         margin=dict(l=20, r=20, t=40, b=20)  # Adjust margins
     )
 }
+
+AXISBLANK = dict(
+    autorange=True,
+    showgrid=False,
+    ticks='',
+    showticklabels=False,
+    zeroline=False,
+    showline=False
+)
+
+MARGINBLANK = dict(
+    l=0, r=0, t=0, b=0
+)

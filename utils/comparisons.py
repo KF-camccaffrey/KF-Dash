@@ -2,7 +2,7 @@
 
 import numpy as np
 import pandas as pd
-from utils.config import GRAPHCONFIG, BLUE, PINK, YELLOW, RED, GRAY, alpha, FORESTGREEN
+from utils.config import GRAPHCONFIG, BLUE, PINK, YELLOW, RED, GRAY, alpha, FORESTGREEN, EMPTYFIG
 import plotly.express as px
 import plotly.figure_factory as ff
 import plotly.graph_objects as go
@@ -19,12 +19,17 @@ from plotly.subplots import make_subplots
 
 def create_comparisons(df, pay, gender, comparisons):
     result = {}
+    new_categorical = {}
+
+    response = comparisons.get("response", None)
+    quantitative = comparisons.get("quantitative", None)
+    categorical = comparisons.get("categorical", None)
 
     male = df[df[gender] == "Male"]
     female = df[df[gender] == "Female"]
     other = df[df[gender] == "Other"]
 
-    for col, params in comparisons.items():
+    for col, params in categorical.items():
         all_lvls = list(df[col].unique())
         lvls = params.get("levels", all_lvls[:])
         base_lvl = params.get("base", lvls[0])
@@ -174,8 +179,8 @@ def create_comparisons(df, pay, gender, comparisons):
              dunn_p=dunn_p,
              holm_p=holm_p,
         )
-        result[col] = metrics
-    return result
+        new_categorical[col] = metrics
+    return {"response": response, "quantitative": quantitative, "categorical": new_categorical}
 
 def holm_bonferonni(p_values):
     sorted_indices = np.argsort(p_values)
@@ -188,7 +193,11 @@ def holm_bonferonni(p_values):
 
 
 def effect_bars(comparisons, category="all", method="median_comp"):
-    if category != "all":
+    comparisons = comparisons["categorical"]
+
+    if category == "none":
+        return EMPTYFIG
+    elif category != "all":
         comparisons = {category: comparisons[category]}
 
     unit = "$" if method == "median_comp" else "%"
@@ -279,6 +288,8 @@ def p_color(p):
 
 
 def dumbbell_chart(comparisons, selected_category, method, mysort):
+    comparisons = comparisons["categorical"]
+
     height = 750
     mt, mb, ml, mr = (10, 10, 10, 10)
 
@@ -288,6 +299,7 @@ def dumbbell_chart(comparisons, selected_category, method, mysort):
 
     method_male = metrics[f"{method}_male"]
     method_female = metrics[f"{method}_female"]
+
     method_gap = metrics[f"{method}_gap"]
     n = metrics["n"]
     n_male = metrics["n_male"]
@@ -303,7 +315,12 @@ def dumbbell_chart(comparisons, selected_category, method, mysort):
     cent = 5
 
     traces = []
+    skips = []
     for i in range(n_lvls+1):
+        if np.isnan(method_male[i]) and np.isnan(method_female[i]):
+            traces.append(None)
+            skips.append(i)
+            continue
         trace = go.Scatter(
             x=[method_male[i], method_female[i]] * 2,
             y=[lvls[i]] * 4,
@@ -321,7 +338,7 @@ def dumbbell_chart(comparisons, selected_category, method, mysort):
 
         traces.append(trace)
 
-    traces = [traces[0]] + [traces[i] for i in inds if i != 0]
+    traces = [traces[0]] + [traces[i] for i in inds if i != 0 and i not in skips]
 
     layout = go.Layout(
         #title=f"Difference in {method.capitalize()} Pay between Men and Women across {selected_category.capitalize()} Levels",
@@ -359,6 +376,8 @@ def dumbsize(pmax, n, nmax):
 
 
 def pie_chart(comparisons, selected_category, lvl):
+    comparisons = comparisons["categorical"]
+
     metrics = comparisons[selected_category]
     lvls = metrics["levels"]
     i = np.where(lvls == lvl)[0][0]
@@ -379,13 +398,13 @@ def pie_chart(comparisons, selected_category, lvl):
         labels=labels,
         values=counts,
         domain=dict(x=[0, 1], y=[0, 1]),
-        hole=0.5,  # This creates the donut shape
-        textinfo='percent',
+        hole=0.8,  # This creates the donut shape
+        textinfo='none',
         hoverinfo='value',
-        marker=dict(colors=colors),
+        marker=dict(colors=colors, line=dict(color="#DEE2E6", width=2)),
         textfont=dict(family="Gotham", size=13),
-        hovertemplate= ["{:20,}".format(c).strip() + '<extra></extra>' for c in counts], #'%{value:20,}',  # Custom hover text format
-        hoverlabel_font_size=13,
+        hovertemplate= [f"{p}%（" + "{:20,}".format(c).strip() + '）<extra></extra>' for c, p in zip(counts, percs)], #'%{value:20,}',  # Custom hover text format
+        hoverlabel_font_size=18,
         hoverlabel_font_family="Gotham",
     ))
 
@@ -394,21 +413,95 @@ def pie_chart(comparisons, selected_category, lvl):
             text="{:20,}".format(total).strip(),
             x=0.5,
             y=0.5,
-            font_size=22,
+            font_size=24,
             font_family="Gotham",
             showarrow=False,
             xref="paper",
             yref="paper",
         )],
         showlegend=False,
-        height=200,
-        width=200,
-        margin=dict(l=0, r=0, t=0, b=0),
-        paper_bgcolor="gray",
+        height=150,
+        width=150,
+        margin=dict(l=2, r=2, t=2, b=2),
+        #paper_bgcolor="gray",
         autosize=False,
     )
 
     return fig
+
+
+def metric_bars(comparisons, selected_category, lvl, method):
+    comparisons = comparisons["categorical"]
+
+    metrics = comparisons[selected_category]
+    lvls = metrics["levels"]
+    i = np.where(lvls == lvl)[0][0]
+
+    labels = np.flip(["Male", "Female", "Other"])
+    vals = np.nan_to_num([metrics[f"{method}_{labels[j].lower()}"][i] for j in range(3)])
+    colors = np.flip([BLUE, PINK, FORESTGREEN])
+
+
+    fig = go.Figure()
+
+
+    fig.add_trace(go.Bar(
+        y=labels,
+        x=vals,
+        #text=[f" {format_currency(vals[j])}" for j in range(3)],
+        #textposition='inside',
+        #textfont=dict(family="Gotham", size=20),
+        orientation='h',
+        marker=dict(color=colors, line=dict(color="#DEE2E6", width=2))
+    ))
+
+    #fig.update_traces(texttemplate='%{text}', textposition='inside', insidetextanchor='start')
+
+    for label, val in zip(labels, vals):
+        fig.add_annotation(
+            x=max(vals) * 0.5,  # Adjust the position as needed
+            y=label,
+            text=format_currency(val),
+            showarrow=False,
+            xanchor='right',  # Right-align the text
+            yanchor='middle',
+            font_family="Gotham",
+            font_size=20,
+            font_color="white",
+            #font_variant_numeric="tabular-nums",
+            #textfont=dict(family="Gotham", size=8, color="white"),
+    )
+
+    fig.update_layout(
+        xaxis=dict(
+            showticklabels=False,
+            zeroline=False
+        ),
+        yaxis=dict(
+            title=f"{method.capitalize()} Pay",
+            title_font_size=22,
+            title_font_family="Gotham",
+            automargin=True,
+            tickmode='array',
+            showticklabels=False,
+        ),
+        margin=dict(l=0, r=0, t=30, b=0),
+        height=150,  # Adjust height to match text box space
+        width=350,
+        paper_bgcolor="white",
+        plot_bgcolor="white",
+        bargap=0.05,
+    )
+
+    return fig
+
+def format_currency(value):
+    if value >= 1_000_000:
+        return f"$ {value / 1_000_000:.1f}M"
+    elif value >= 1_000:
+        return f"$ {value / 1_000:.1f}k"
+    result ="$ " + f"{value:20,.2f}".strip()
+    return result
 
 
 
@@ -431,7 +524,7 @@ if __name__ == "__main__":
     np.set_printoptions(precision=2, suppress=True, threshold=np.inf)
     pprint(result, width=500)
 
-    fig1 = pie_chart(result, "race", "Black")
+    fig1 = metric_bars(result, "race", "Black", "mean")
     fig1.show()
 
 

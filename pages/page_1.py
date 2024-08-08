@@ -10,7 +10,7 @@ import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
 from dash.dependencies import MATCH, ALL
 from utils.g_and_h import dgh
-from utils.config import GRAPHCONFIG, BLUE, PINK, alpha, BASICCOMPS
+from utils.config import GRAPHCONFIG, BLUE, PINK, alpha, BASICCOMPS, EMPTYFIG, AXISBLANK, MARGINBLANK
 import plotly.graph_objs as go
 from utils import generator
 import base64
@@ -155,6 +155,7 @@ upload = html.Div([
 graph_preview =  html.Div([
     dcc.Graph(
         id="graph-preview",
+        figure=EMPTYFIG,
         config=GRAPHCONFIG,
         style={'width': '530px', 'height': '300px'},
         className="m-30"
@@ -234,32 +235,6 @@ def page_layout():
     return layout
 
 
-BLANK = go.Layout(
-    xaxis=dict(
-        autorange=True,
-        showgrid=False,
-        ticks='',
-        showticklabels=False,
-        zeroline=False,
-        showline=False
-    ),
-    yaxis=dict(
-        autorange=True,
-        showgrid=False,
-        ticks='',
-        showticklabels=False,
-        zeroline=False,
-        showline=False
-    ),
-    width = 900,
-    height = 320,
-    margin_l = 0,
-    margin_r = 0,
-    margin_t = 0,
-    margin_b = 0
-)
-
-
 @callback(
     Output("advanced", "is_open"),
     [Input("advanced-button", "n_clicks")],
@@ -299,7 +274,7 @@ def toggle_collapse(n, is_open):
     State("upload-data", "contents"),
     State("upload-data", "filename"),
     State("session", "data"),
-    prevent_initial_call = True,
+    prevent_initial_call=True,
 )
 def save_form(n_clicks, gender_gap, gender_ratio, sample_size, upload, filename, data):
     if n_clicks == 0:
@@ -313,12 +288,11 @@ def save_form(n_clicks, gender_gap, gender_ratio, sample_size, upload, filename,
 
     #print("query_data in save_form()")
     df, timestamp = query_data(session_id, params=params, upload=upload, filename=filename)
-    _ = query_comparisons(session_id, timestamp, BASICCOMPS)
 
     if df is None:
-        data["valid"] = False
+        data["valid_data"] = False
     else:
-        data["valid"] = True
+        data["valid_data"] = True
         data['timestamp'] = timestamp
 
     #print("FLAGGGG 2")
@@ -386,7 +360,7 @@ def update_shape(gap, ratio, fig):
         showlegend=False,
     ))
 
-    fig.layout = BLANK
+    fig.layout = go.Layout(xaxis=AXISBLANK, yaxis=AXISBLANK, margin=MARGINBLANK)
     fig.update_layout(transition_duration=500,
                       template="simple_white",
                       xaxis_title="Simulated Pay Gap",

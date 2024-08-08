@@ -18,7 +18,7 @@ external_stylesheets = [
 app = dash.Dash(__name__, use_pages=True, external_stylesheets=external_stylesheets)
 app.config.suppress_callback_exceptions = True
 
-from utils.cache import query_data
+from utils.cache import query_data, query_comparisons, query_model
 
 PAGES = [page for page in dash.page_registry.values()]
 PATHS, ORDERS, NAMES = [list(page[key] for page in PAGES) for key in ["path", "order", "name"]]
@@ -198,7 +198,7 @@ def handle_url(path, data):
         i = 0
     finally:
         output_session(path, **data)
-        content = validate_url(i, data["valid"])
+        content = validate_url(i, data["valid_data"], data["valid_selection"])
         names = update_tabs(i)
     return data, content, *names
 
@@ -208,27 +208,38 @@ def update_session(data):
 
     session_id = data.get("session_id", str(uuid.uuid4()))
     timestamp = data.get("timestamp", datetime.datetime.now())
-    valid = data.get("valid", False)
+    valid_data = data.get("valid_data", False)
+    valid_selection = data.get("valid_selection", False)
+    valid_model = data.get("valid_model", False)
 
-    valid = query_data(session_id, check=True) if valid else valid
+    valid_data = query_data(session_id, check=True) if valid_data else False
+    valid_selection = query_comparisons(session_id, timestamp, check=True) if valid_selection else False
+    valid_selection = valid_selection if valid_data else False
+    valid_model = query_model(session_id, timestamp, check=True) if valid_model else False
+    valid_model = valid_model if valid_selection else False
 
-    data = {"session_id": session_id, "timestamp": timestamp, "valid": valid}
+
+    data = {"session_id": session_id, "timestamp": timestamp, "valid_data": valid_data, "valid_selection": valid_selection, "valid_model": valid_model}
     return data
 
-def output_session(path, session_id, timestamp, valid):
+def output_session(path, session_id, timestamp, valid_data, valid_selection, valid_model):
     message = f"""{styled("SESSION:", "black", True)}
-    {styled("PATH:", "red",     True)}\t{styled(path,       "red")}
-    {styled("UUID:", "magenta", True)}\t{styled(session_id, "magenta")}
-    {styled("TIME:", "blue",    True)}\t{styled(timestamp,  "blue")}
-    {styled("DATA?", "cyan",    True)}\t{styled(valid,      "cyan")}\n"""
+    {styled("PATH:", "red",     True)}\t{styled(path,            "red")}
+    {styled("UUID:", "magenta", True)}\t{styled(session_id,      "magenta")}
+    {styled("TIME:", "blue",    True)}\t{styled(timestamp,       "blue")}
+    {styled("DATA?", "cyan",    True)}\t{styled(valid_data,      "cyan")}
+    {styled("VARS?", "green",   True)}\t{styled(valid_selection, "green")}
+    {styled("MODL?", "yellow",  True)}\t{styled(valid_model,     "yellow")}\n"""
     print(message)
     return
 
 
-def validate_url(i, valid):
+def validate_url(i, valid_data, valid_selection):
     o = i - 1
-    if o > 1 and not valid:
+    if o > 1 and not valid_data:
         return no_data_layout()
+    elif o > 2 and not valid_selection:
+        return no_selection_layout()
     else:
         return PAGES[i]["default"]
 
@@ -248,6 +259,24 @@ def no_data_layout():
         className="h-100",  # Make sure the container takes full height
     )
     return layout
+
+def no_selection_layout():
+    layout = dbc.Container(
+        dbc.Row(
+            dbc.Col(
+                html.Div([
+                    html.H2("No Variables Selected"),
+                    html.P("Sorry, a response variable must be selected before viewing this page."),
+                    dbc.Button("Go to Variable Selection", color="primary", href="/variable-selection"),
+                ], style={"text-align": "center", "margin-top": "20%"}),
+
+                width={"size": 6, "offset": 3},  # Center the column
+            ),
+        ),
+        className="h-100",  # Make sure the container takes full height
+    )
+    return layout
+
 
 def update_tabs(i):
     o = i - 1

@@ -1,457 +1,300 @@
 
 
 import dash
-from dash import Dash, dcc, html, Input, Output, State, callback, dash_table, ctx
-from utils import generator
-from utils.config import BLUE, PINK, GRAPHCONFIG, HOVERLABEL, BASICCOMPS, EMPTYFIG
-import os
+from dash import Dash, dcc, html, Input, Output, State, callback, no_update, ALL
+import dash_bootstrap_components as dbc
+import pandas as pd
+import numpy as np
+from utils.cache import query_data, query_comparisons
+from utils.config import BLUE, PINK, FORESTGREEN, GRAPHCONFIG, EMPTYFIG, BASICCOMPS
+import statsmodels.api as sm
+import plotly.graph_objects as go
+from pprint import pprint
+
 from dash.exceptions import PreventUpdate
 
-import plotly.express as px
-import plotly.figure_factory as ff
-import numpy as np
-import pandas as pd
-import dash_bootstrap_components as dbc
-from utils.cache import query_data, query_comparisons
-
-from utils.comparisons import create_comparisons, dumbbell_chart, pie_chart
-
-NAME = "Visualizations"
-PATH = "/visualizations"
-
-data_graph = dcc.Graph(figure={}, id='generate-chart', config=GRAPHCONFIG)
-data_table = dash_table.DataTable(id='data-table', data=[], page_size=10, style_cell={"font-family": "Gotham Thin"},)
-
-
-education_levels = ['Secondary', 'Bachelor', 'Master', 'Doctorate']
-level_levels = ['Entry', 'Low', 'Mid', 'Senior']
-race_levels = ['Male', 'Female', 'Other']
-
-"""
-boxplots = html.Div([
-    html.H3("Grouped Boxplots"),
-    #dbc.Label("Select Variable", html_for="category-dropdown", className="input-group-label", style={'font-weight': 'bold'}),
-    #dcc.Dropdown(
-    #    id='category-dropdown',
-    #    options=[
-    #        {'label': 'Education Level', 'value': 'education'},
-    #        {'label': 'Job Level', 'value': 'level'},
-    #        {'label': 'Race/Ethnicity', 'value': 'race'},
-    #    ],
-    #    value='education',  # Default value
-    #    style={'width': '50%'}
-    #),
-    dcc.Graph(
-        figure={},
-        id='boxplot',
-        #style={'height': '800px'}
-    )
-])
-"""
-
-
-
+NAME = "Variable Selection"
+PATH = "/variable-selection"
 
 layout = html.Div()
 
-# Define custom CSS styles
-"""
-SIDEBAR_STYLE = {
-    #"position": "relative",
-    "height": "100%",
-    #"top": "70px",
-    #"left": 0,
-    #"bottom": "63px",
-    #"padding": "2rem 1rem",
-    "background-color": "#f8f9fa",  # Light gray background
-}
-"""
-
-
-
-
-sideinputs = html.Div(className="pl-5", children=[
-    html.Div(className="py-3", children=[
-        dbc.Label(html.H5("Details By"), width="auto"),
-        dcc.RadioItems(
-            id="category-input",
-            options=[
-                {'label': ' Department', 'value': 'department'},
-                {'label': ' Education', 'value': 'education'},
-                {'label': ' Level', 'value': 'level'},
-                {'label': ' Race', 'value': 'race'},
-            ],
-            value='department',
-        ),
-    ]),
-    html.Div(className="py-3", children=[
-        dbc.Label(html.H5("Sort By"), width="auto"),
-        dcc.RadioItems(
-            id="sort-input",
-            options=[
-                {'label': ' A to Z', 'value': 'alpha'},
-                {'label': ' Largest Pay Gap', 'value': 'diff'},
-                {'label': ' Most Employees', 'value': 'n'},
-            ],
-            value='alpha',
-        ),
-    ]),
-    html.Div(className="py-3", children=[
-        dbc.Label(html.H5("Metric"), width="auto"),
-        dcc.RadioItems(
-            id='method-input',
-            options=[
-                {'label': ' Mean', 'value': 'mean'},
-                {'label': ' Median', 'value': 'median'},
-            ],
-            value="mean",
-            labelStyle={"display": "inline-block", "padding": "5px"}
-        )
-    ])
+response_selection = html.Div(className="pb-3", children=[
+    dbc.Label("Response Variable", html_for="response-selection", className="input-group-label"),
+    dcc.Dropdown(
+        id="response-selection",
+        multi=False,
+        placeholder="Select continuous response variable",
+        disabled=True,
+        clearable=False,
+        persistence=True,
+        persistence_type="session",
+    )
 ])
 
-dumbbells = dcc.Graph(
-    id="dumbbell",
-    figure=EMPTYFIG,
-    config=GRAPHCONFIG,
-    className="px-3 py-3"
-)
 
-boxplots = dcc.Graph(
-    figure={},
-    id='boxplot',
-    config=GRAPHCONFIG,
-    className="px-3 py-3"
-)
+toggle_btn = dbc.Button("Select All", id="toggle-btn", className="my-3 py-2 mx-1 px-2", color="success", n_clicks=0)
 
-piechart = dcc.Graph(
-    figure={},
-    id='piechart',
-    config=GRAPHCONFIG,
-    className="px-3 py-3"
-)
 
-caption = html.Div(id="caption", className="px-3 py-3")
-level = html.Div(id="level", hidden=True)
-metrics = html.Div(id="metrics", className="px-3 py-3")
+quant_selection = html.Div(className="pb-3", children=[
+    dbc.Label("Quantitative Predictor(s)", html_for="quant-selection", className="input-group-label"),
+    dcc.Dropdown(
+        id="quant-selection",
+        multi=True,
+        placeholder="Select quantitative predictor(s) of pay",
+        disabled=True,
+        persistence=True,
+        value=[],
+        persistence_type="session",
+    )
+])
+
+
+cat_selection = html.Div(className="pb-3", children=[
+    dbc.Label("Categorical Predictor(s)", html_for="cat-selection", className="input-group-label"),
+    dcc.Dropdown(
+        id="cat-selection",
+        multi=True,
+        placeholder="Select categorical predictor(s) of pay",
+        disabled=True,
+        persistence=True,
+        persistence_type="session",
+    )
+])
+
+
+base_selection = html.Div([
+    dbc.Label("Base Levels", html_for="cat-selection", className="input-group-label"),
+    html.Div(
+        id="base-selections",
+        style={
+            'display': 'flex',
+            'flexDirection': 'column',
+            'gap': '10px',
+            'max-height': '400px',
+            "alignItems": "center",
+            'overflowY': "auto",
+            "border": "1px solid #ddd",
+            "border-radius": "5px",
+            "padding": "10px",
+        },
+    ),
+])
+
+selection_btn = html.Div(className="text-center", children=[
+    dbc.Button("Submit Selection", id="selection-btn", className="my-3 py-2 mx-1 px-2", color="success", n_clicks=0)
+])
 
 
 def page_layout():
-    layout = dbc.Container(id="layout", fluid=True, style={"height": "100%", "padding": "0px"}, children=[
-        dbc.Row(style={"height": "100%"}, children=[
-            dbc.Col(id="sidebar", width=2, children=[
-                sideinputs,
-            ]),
-            dbc.Col(id="plot-main", width=6, children=[
-                html.Div(className="plot-frame", children=[
-                    caption,
-                    dumbbells,
-                ])
-            ]),
-            dbc.Col(id="plot-side", width=4, children=[
-                html.Div(className="plot-frame", children=[
-                    level,
-                    metrics,
-                    boxplots,
-                ])
-            ]),
-        ])
-        #dbc.Container([
-        #    dbc.Row([
-        #        dbc.Col(data_graph, width=6),
-        #        dbc.Col(data_table, width=6),
-        #    ]),
-        #    boxplots,
-        #    dumbbells,
-        #]),
-        #dumbbells,
-        #boxplots
+    layout = html.Div(id="layout", children=[
+        dbc.Container([
+            html.Div(className="plot-frame px-5 py-5", children=[
+                response_selection,
+                quant_selection,
+                cat_selection,
+                base_selection,
+                selection_btn,
+            ])
+        ], className="my-4"),
     ])
 
     return layout
 
 
 @callback(
-        Output("generate-chart", "figure"),
-        #Input("url", "pathname"),
-        Input('session', 'data')
-)
-def update_chart(data):
-    session_id = data.get('session_id', None)
-
-    #print(f"update chart session iD: {session_id}")
-
-    #print("query_data in update_chart()")
-    df, _ = query_data(session_id)
-
-    if df is None:
-        return {}
-
-    fig = px.histogram(df, x='pay', color='gender', labels={'pay': 'Pay', 'gender': 'Gender'},
-                       barmode="overlay", hover_data={"gender": False},
-                       color_discrete_map={'Male': BLUE, 'Female': PINK}, opacity=0.4,
-                       template="simple_white")
-
-    fig.update_traces(hoverlabel=HOVERLABEL, hovertemplate="<b>%{y}</b>")
-    fig.update_layout(hovermode="x")
-
-    return fig
-
-
-
-
-@callback(
-    Output("data-table", "data"),
-    #Input("generate-chart", "figure"),
-    #Input("url", "pathname"),
+    Output('response-selection', 'options'),
+    Output("response-selection", "disabled"),
     Input('session', 'data'),
 )
-def update_table(data):
+def update_response_options(data):
     session_id = data.get('session_id', None)
-    #print(f"update table session iD: {session_id}")
 
-    #print("query_data in update_table()")
     df, _ = query_data(session_id)
-    if df is None:
-        return []
+
+    if df is not None:
+        numeric = df.select_dtypes(include=["number"]).columns
+        #opts = [{'label': c.capitalize(), 'value': c} for c in numeric]
+        return numeric, False
+
+    return [], True
+
+
+
+@callback(
+    Output("quant-selection", "options"),
+    Output("quant-selection", "disabled"),
+    Input("response-selection", "value"),
+    State("response-selection", "options"),
+    State("session", "data")
+
+)
+def update_quant_options(response, response_options, data):
+    if response is None:
+        return [], True
+
+    opts = []
+
+    if response_options is not None:
+        print("reponse options is NOT none")
+        opts = [c for c in response_options if c != response]
     else:
-        return df.to_dict("records")
+        print("response options is NONE")
+        session_id = data.get("session_id", None)
+        df, _ = query_data(session_id)
 
+        if df is not None:
+            numeric = df.select_dtypes(include=["number"]).columns
+            opts = [c for c in numeric if c != response]
 
+    return opts, False
 
-"""
-# Define callback to update the boxplot based on dropdown selection
-@callback(
-    Output('boxplot', 'figure'),
-    Input('category-dropdown', 'value'),
-    State('session', 'data')
-)
-def update_boxplot(selected_category, data):
-    # Create the boxplot using Plotly
-    #print(selected_category)
-    #print("query_data in update_boxplot()")
-    session_id = data.get('session_id', None)
-    df = query_data(session_id)
-
-    if df is None:
-        return {}
-
-
-    fig = px.box(df, x=selected_category, y='pay', color='gender',
-                 category_orders={selected_category: sorted(df[selected_category].unique())},
-                 title=f'Distribution of Pay by {selected_category} and Gender',
-                 labels={'Pay': 'Pay ($)', selected_category: selected_category, 'Gender': 'Gender'},
-                 color_discrete_map={'Male': BLUE, 'Female': PINK, "Other": "green"},
-                 points=False,  # Show all points
-                 template="simple_white"
-    )
-
-    # Update layout for better visualization
-    fig.update_layout(
-        boxmode='group',  # Group boxes together
-        boxgap=0.3,  # Reduce the gap between boxes
-        boxgroupgap=0.2,  # Reduce the gap between different groups of boxes
-        yaxis=dict(
-            title='Pay ($)'
-        ),
-        xaxis=dict(
-            title=f'{selected_category}'
-        )
-    )
-
-    return fig
-"""
 
 @callback(
-    Output('boxplot', 'figure'),
-    Input('category-input', 'value'),
-    Input('level', 'children'),
-    State('session', 'data'),
+    Output("cat-selection", "options"),
+    Output("cat-selection", "disabled"),
+    Input("response-selection", "value"),
+    State("session", "data"),
+
 )
-def update_boxplot(category, lvl, data):
+def update_cat_options(response, data):
+    if response is None:
+        return [], True
+
     session_id = data.get('session_id', None)
     df, _ = query_data(session_id)
 
     if df is None:
-        return {}
+        return [], True
 
-    if lvl != "Overall":
-        df = df[df[category] == lvl]
+    threshold = 20
+    nonnumeric = df.select_dtypes(exclude=["number"]).columns
+    nonnumeric = [c for c in nonnumeric if df[c].nunique() <= threshold]
 
-    fig = px.box(df, x='gender', y='pay', color='gender',
-                 labels={'pay': 'Pay ($)'},
-                 color_discrete_map={'Male': BLUE, 'Female': PINK, "Other": "green"},
-                 category_orders={"gender": ["Male", "Female", "Other"]},
-                 points=False,
-                 template="simple_white",
-    )
+    opts = [c for c in nonnumeric if c != response]
 
-    mean_values = df.groupby('gender')['pay'].mean().reset_index()
+    return opts, False
 
-    #fig.add_trace(px.scatter(mean_values, x="gender", y="pay",
-    #              mode="markers", showlegend=False).data[0])
-
-    # Update layout for better visualization
-    fig.update_layout(
-        yaxis=dict(
-            title='Pay ($)',
-            tickfont_family="Gotham",
-        ),
-        xaxis_title=None,
-        showlegend=False,
-        margin_t=20,
-    )
-
-    return fig
 
 @callback(
-    Output("level", "children"),
-    Input('category-input', 'value'),
-    Input('dumbbell', 'hoverData'),
-    Input('dumbbell', 'clickData'),
+    Output("base-selections", "children"),
+    Input("cat-selection", "value"),
+    State("base-selections", "children"),
+    State("session", "data"),
 )
-def update_level(category, hoverData, clickData):
-    if clickData is None and hoverData is None:
-        lvl = "Overall"
+def update_base_levels(cats, base_selections, data):
+    default = html.Div([html.P("No categorical variables selected")], className="pt-3")
+
+    if not cats:
+        return [default]
+
+    session_id = data.get('session_id', None)
+    df, _ = query_data(session_id)
+
+    if df is None:
+        return [default]
+
+    result = []
+    for c in cats:
+        lvls = df[c].unique()
+        lvl = df[c].value_counts().idxmax()
+
+
+        dropdown = html.Div([
+            dbc.Label(f"{c}", html_for=f"base-{c}", className="input-group-label px-2 mt-2 pt-1",  style={"height": "35px", 'width': '200px', "border": "1px solid #ddd", "border-radius": "5px"}),
+            dcc.Dropdown(
+                id={"type": "base-dropdown", "index": c},
+                className="base-dropdown",
+                placeholder=f"Select {c} base level",
+                options=lvls,
+                value=lvl,
+                clearable=False,
+                style={"width": "350px"},
+                persistence=True,
+                persistence_type="session",
+            )
+        ], style={'display': 'flex', 'alignItems': 'center', 'gap': '10px', "position": "relative"})
+
+        result.append(dropdown)
+
+    return result
+
+
+@callback(
+    Output("session", "data", allow_duplicate=True),
+    Input("selection-btn", "n_clicks"),
+    State("response-selection", "value"),
+    State("quant-selection", "value"),
+    State("cat-selection", "value"),
+    State({"type": "base-dropdown", "index": ALL}, "value"),
+    State("session", "data"),
+    prevent_initial_call=True,
+)
+def submit_selection(n_clicks, response, quants, cats, base_selections, data):
+    if n_clicks == 0:
+        raise PreventUpdate
+
+    if response is None:
+        raise PreventUpdate
+
+    if quants is None and cats is None:
+        raise PreventUpdate
+
+    session_id = data.get("session_id", None)
+    timestamp = data.get("timestamp", None)
+    valid_data = data.get("valid_data", False)
+
+    if not valid_data:
+        raise PreventUpdate
+
+    categorical = {}
+    if cats is not None:
+        for i, c in enumerate(cats):
+            print(f"enumerate: {i} {c} / {len(base_selections)}")
+            try:
+                base = base_selections[i] #base_selections[i]["props"]["children"][1]["props"]["value"]
+                categorical[c] = {"base": base}
+            except IndexError as err:
+                print(f"Index Error while iterating through lists of potential base levels. Preventing submission. Message: {err}")
+                raise PreventUpdate
+
+    comps = {"response": response, "quantitative": quants, "categorical": categorical}
+    comparisons = query_comparisons(session_id, timestamp, comps)
+
+    if comparisons is None:
+        data["valid_selection"] = False
     else:
-        if clickData is None:
-            clickData = hoverData
+        data["valid_selection"] = True
 
-        lvl = clickData["points"][0]['y']
-        if ctx.triggered_id == "category-input":
-            lvl = "Overall"
-    return lvl
+    pprint(comparisons)
 
+    return data
 
+"""
 @callback(
-    Output('dumbbell', 'clickData'),
-    Input('category-input', 'value')
-)
-def reset_dumbbell_data(category):
-    return None
-
-
-
-@callback(
-    Output('metrics', 'children'),
-    Input('category-input', 'value'),
-    Input('level', 'children'),
-    Input('method-input', 'value'),
-    State('session', 'data'),
-)
-def update_metrics(category, lvl, method, data):
-    session_id = data.get('session_id', None)
-    timestamp = data.get('timestamp', None)
-    comparisons = query_comparisons(session_id, timestamp, BASICCOMPS)
-
-    if comparisons is None:
-        return []
-
-    metrics = comparisons[category]
-    lvls = metrics["levels"]
-
-    i = np.where(lvls == lvl)[0][0]
-    keys = [f"{method}_male", f"{method}_female", f"{method}_gap", "n_male", "n_female", f"{method}_gap_perc"]
-    metric_male, metric_female, metric_gap, n_male, n_female, ratio = (metrics[key][i] for key in keys)
-
-    fig = pie_chart(comparisons, category, lvl)
-
-    layout = [
-        html.H5("Level Summary"),
-        html.H4(lvl),
-        html.Div(id="metric-display", className="mx-2", children=[
-            dbc.Row([
-            dbc.Col(width=7, children=[
-            html.H5([
-                html.Div("Avg. Men's Pay:", className="metric-label blue"),
-                html.Div('${:20,.2f}'.format(metric_male), className="metric-value tabular blue"),
-                #html.Div("N:", className="n-label blue"),
-                #html.Div('{:20}'.format(n_male),  className="n-value tabular blue")
-            ]),
-            html.H5([
-                html.Div("Avg. Women's Pay:", className="metric-label pink"),
-                html.Div('${:20,.2f}'.format(metric_female), className="metric-value tabular pink"),
-                #html.Div("N:", className="n-label pink"),
-                #html.Div('{:20}'.format(n_female),  className="n-value tabular pink")
-            ]),
-            ]),
-            dbc.Col(width=5, children=[
-                dcc.Graph(
-                    figure=fig,
-                    config=GRAPHCONFIG,
-                    className="px-3 py-3"
-                )
-            ])
-            ]),
-
-
-            html.Hr(style={'margin': '10px 0', "width": "330px"}),
-            html.H5([
-                html.Div("Wage Gap:", className="metric-label"),
-                html.Div('${:20,.2f}'.format(abs(metric_gap)), className="metric-value tabular")
-            ]),
-        ]),
-        html.Div(className="mt-5", style={"textAlign": "center"}, children=[
-            "A woman makes ",
-            html.Span("${:.2f}".format(ratio), className="tabular pink"),
-            " for every ",
-            html.Span("$1.00", className="tabular blue"),
-            " a man makes."
-        ])
-    ]
-
-    return layout
-
-
-@callback(
-    Output('piechart', 'figure'),
-    Input('category-input', 'value'),
-    Input('level', 'children'),
-    State('session', 'data'),
+    Output("quant-selection", "value"),
+    Output("cat-selection", "value"),
+    Input("toggle-btn", "n_clicks"),
+    State("quant-selection", "value"),
+    State("cat-selection", "value"),
+    State("quant-selection", "options"),
+    State("cat-selection", "options")
 )
 
-def update_piechart(category, lvl, data):
-    session_id = data.get('session_id', None)
-    timestamp = data.get('timestamp', None)
-    comparisons = query_comparisons(session_id, timestamp, BASICCOMPS)
+def toggle_options(n_clicks, quant_values, cat_values, quant_opts, cat_opts):
+    if n_clicks == 0:
+        raise PreventUpdate
 
-    if comparisons is None:
-        return {}
+    print(quant_values)
+    print(cat_values)
 
-    fig = pie_chart(comparisons, category, lvl)
-    return fig
+    print(quant_opts)
+    print(cat_opts)
 
+    quant_values = quant_opts
+    cat_values = cat_opts
 
-@callback(
-    Output('caption', 'children'),
-    Input('category-input', 'value'),
-    Input('method-input', 'value'),
-)
-def update_caption(category, method):
-    layout = [
-        html.H5(f"Difference in {method.capitalize()} Pay Between Men & Women"),
-        html.H4(f"By {category.capitalize()}")
-    ]
-    return layout
-
-
-@callback(
-    Output('dumbbell', 'figure'),
-    Input('category-input', 'value'),
-    Input('method-input', 'value'),
-    Input('sort-input', 'value'),
-    State('session', 'data')
-)
-def update_dumbell(category, method, sort, data):
-    session_id = data.get('session_id', None)
-    timestamp = data.get('timestamp', None)
-    comparisons = query_comparisons(session_id, timestamp, BASICCOMPS)
-
-    if comparisons is None:
-        return {}
-
-    fig = dumbbell_chart(comparisons, category, method, sort)
-    return fig
+    return quant_values, cat_values
+"""
 
 
 dash.register_page(
@@ -461,5 +304,5 @@ dash.register_page(
     name=NAME,
     order=2,
     layout=layout,
-    default=page_layout()
+    default=page_layout(),
 )

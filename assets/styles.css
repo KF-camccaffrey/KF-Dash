@@ -9,8 +9,9 @@
     --pageheight: calc(100vh - var(--headerheight) - var(--footerheight));
     --blue: #007da4;
     --pink: #920a7a;
+    --positive: #77bc1f;
+    --negative: #d40a1c;
 }
-
 
 html, body {
     font-family: Gotham;
@@ -18,6 +19,7 @@ html, body {
     padding:0;
     height: 100%;
     background-color: var(--graybackground);
+    font-variant-numeric: tabular-nums;
 }
 
 h1, h2 {
@@ -45,13 +47,24 @@ h6 {
     color: var(--pink);
 }
 
+.positive {
+    color: black;
+}
+
+.negative {
+    color: var(--negative);
+}
+
+
 .tabular {
     font-family: Gotham;
     font-variant-numeric: tabular-nums;
 }
 
+
+
 #metric-display {
-    /*
+    /* #metric-display
     border: 2px solid #DEE2E6;
     border-radius: 10px;
     padding: 5px;
@@ -79,6 +92,7 @@ h6 {
     }
 }
 
+
 #nav-title {
     font-family: Gotham Medium;
     color: var(--forestgreen);
@@ -105,7 +119,7 @@ h6 {
     border-right: 2px solid #DEE2E6;
 }
 
-#plot-main, #plot-side {
+#plot-main, #plot-side, #plot-bottom {
     height: 100%;
 }
 
@@ -126,6 +140,26 @@ h6 {
 #boxplot {
     height: 60%;
     width: 100%;
+}
+
+.base-dropdown {
+    position: relative;
+    z-index: 1;
+}
+
+.base-dropdown .Select-control {
+    position: relative;
+    z-index: 1;
+}
+
+.base-dropdown .Select-menu-outer {
+    position: relative;
+    z-index: 2;
+}
+
+#base-selections {
+    position: relative;
+    z-index: 1;
 }
 
 

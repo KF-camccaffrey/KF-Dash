@@ -9,6 +9,7 @@ import io
 import dash
 from io import StringIO
 from utils import comparisons
+import statsmodels.api as sm
 
 cache = Cache(dash.get_app().server, config={
     "CACHE_TYPE": "filesystem", # will not work on systems with ephemeral filesystems like Heroku
@@ -92,13 +93,24 @@ def query_data(session_id, params=None, upload=None, filename=None, check=False)
 
 
 
-def query_comparisons(session_id, timestamp, comps):
+def query_comparisons(session_id, timestamp, comps=None, check=False):
 
     @cache.memoize()
     def get_comparisons(session_id, timestamp):
-        df, _ = query_data(session_id)
-        result = comparisons.create_comparisons(df, "pay", "gender", comps)
-        return result
+        if comps is None:
+            raise InvalidInputError("'comps' was None")
+        else:
+            df, _ = query_data(session_id)
+            result = comparisons.create_comparisons(df, "pay", "gender", comps)
+            return result
+
+    key = get_key(get_comparisons, session_id, timestamp)
+
+    if check:
+        return cache.has(key)
+
+    if comps is not None:
+        cache.delete(key)
 
     try:
         data = get_comparisons(session_id, timestamp)
@@ -106,6 +118,62 @@ def query_comparisons(session_id, timestamp, comps):
     except Exception as e:
         print(f"Error while querying comparisons. Message: {e}")
         return None
+
+
+
+def query_model(session_id, timestamp, y=None, X=None, check=False):
+
+    @cache.memoize()
+    def get_model(session_id, timestamp):
+        if y is None:
+            raise InvalidInputError("'y' was None")
+
+        if X is None:
+            raise InvalidInputError("'X' was None")
+
+        model = sm.OLS(y, X).fit()
+
+        result = dict(
+            n=model.nobs,
+            p=len(model.params),
+
+            # overall stats
+            r2=model.rsquared,
+            ar2=model.rsquared_adj,
+            fstat=model.fvalue,
+            pval=model.f_pvalue,
+            aic=model.aic,
+            bic=model.bic,
+
+            # coefficients
+            pred=model.params.index,
+            beta=model.params.values,
+            bse=model.bse,
+
+            # residuals
+            fit=model.fittedvalues,
+            res=model.resid,
+            stu=model.get_influence().resid_studentized_internal,
+            lev=model.get_influence().hat_matrix_diag,
+            cookd=model.get_influence().cooks_distance[0],
+        )
+        return result
+
+    key = get_key(get_model, session_id, timestamp)
+
+    if check:
+        return cache.has(key)
+
+    if y is not None and X is not None:
+        cache.delete(key)
+
+    try:
+        model = get_model(session_id, timestamp)
+        return model
+    except Exception as e:
+        print(f"Error while querying comparisons. Message: {e}")
+        return None
+
 
 
 
@@ -203,6 +271,7 @@ def get_data(session_id, params=None, upload=None, filename=None, check=False):
         df = pd.read_json(StringIO(df))
         print(f"df create: {df}")
         return df
+
 
 
 """ EXAMPLE:

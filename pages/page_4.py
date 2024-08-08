@@ -5,91 +5,166 @@ from dash import Dash, dcc, html, Input, Output, State, callback
 import dash_bootstrap_components as dbc
 import pandas as pd
 import numpy as np
+
 import plotly.express as px
-from utils.cache import query_data
-from utils.config import BLUE, PINK, FORESTGREEN, GRAPHCONFIG, EMPTYFIG
+from scipy.stats import kruskal
+from scikit_posthocs import posthoc_dunn
+from utils.config import GRAPHCONFIG, RED, GRAY, YELLOW, BASICCOMPS, EMPTYFIG
+from utils.cache import query_data, query_comparisons
+from utils.comparisons import create_comparisons, effect_bars
 
-NAME = "Multivariate Regression"
-PATH = "/multivariate-regression"
 
-layout = html.Div()
+NAME = "Statistical Tests"
+PATH = "/statistical-tests"
 
-x_dropdown = dcc.Dropdown(
-    id="x-axis",
-    options=[
-        {'label': 'Age', 'value': 'age'},
-        {'label': 'Years of Experience', 'value': "YoE"}
-    ],
-    value="age",
-    clearable=False,
-)
+heatmap = dcc.Graph(figure=EMPTYFIG, id='heatmap', config=GRAPHCONFIG)
 
-color_dropdown = dcc.Dropdown(
-    id="color-by",
-    options=[
-        {'label': 'Gender', 'value': 'gender'},
-        {'label': 'Race', 'value': 'race'},
-        {'label': 'Education', 'value': 'education'},
-        {'label': 'Level', 'value': 'level'},
-    ],
-    value="gender",
-    clearable=False,
-)
+barchart = html.Div([
+    html.Div([
+        html.H3("Pairwise Comparisons"),
+        html.Span("Statistically significant differences will appear in "),
+        html.Span("red", style={'color': RED, 'font-weight': 'bold'}),
+        html.Span(", and insignificant differences in "),
+        html.Span("gray", style={'color': GRAY, 'font-weight': 'bold'}), html.Span("."),
+    ], className="my-5"),
 
-inputs = html.Div(id="inputs", style={'width': '40%', 'display': 'inline-block'}, children=[
-    x_dropdown,
-    color_dropdown,
-    html.Button('Toggle Trendline', id='toggle', n_clicks=0),
+    dbc.Label("Select Variable", html_for="category-dropdown", className="input-group-label", style={'font-weight': 'bold'}),
+    dcc.Dropdown(
+        id='category-dropdown',
+        #options=[
+        #    {'label': "Education", 'value': 'education'},
+        #    {'label': "Gender", 'value': 'gender'},
+        #    {'label': "Race/Ethnicity", 'value': 'race'},
+        #    {'label': "Job Level", 'value': 'level'},
+        #    {'label': "Department", 'value': 'department'},
+        #    {'label': "All", 'value': 'all'},
+        #],
+        #value='gender',
+        clearable=False,
+        #options=[
+        #    {'label': 'Difference in Medians ($)', 'value': 'median_diff'},
+        #    {'label': 'Difference in Medians (%)', 'value': 'median_perc'},
+        #],
+        #value='median_diff',  # Default value
+        style={'width': '50%'}
+    ),
+    dcc.Graph(
+        figure=EMPTYFIG,
+        id='barchart',
+        #style={'height': '800px'}
+    )
 ])
 
+layout = html.Div()
 
 def page_layout():
     layout = html.Div(id="layout", children=[
         dbc.Container([
-            inputs,
-            dcc.Graph(id='scatterplot', config=GRAPHCONFIG, figure=EMPTYFIG)
+            barchart,
         ], className="my-4"),
     ])
 
     return layout
 
+
+"""
 @callback(
-    Output("scatterplot", 'figure'),
-    Input('x-axis', 'value'),
-    Input('color-by', 'value'),
-    Input('toggle', 'n_clicks'),
-    State("session", "data")
+        Output("heatmap", "figure"),
+        #Input("url", "pathname"),
+        Input('session', 'data')
+)
+def update_heatmap(data):
+    session_id = data.get('session_id', None)
+    df = query_data(session_id)
+
+    male_pay = df[df['gender'] == 'Male']['pay']
+    female_pay = df[df['gender'] == 'Female']['pay']
+    other_pay = df[df['gender'] == 'Other']['pay']
+
+    # Conduct Kruskal-Wallis test
+    stat, p_value = kruskal(male_pay, female_pay, other_pay)
+    print(f'Kruskal-Wallis Statistic: {stat}, P-value: {p_value}')
+
+    # Conduct Dunn's test
+    posthoc_results = posthoc_dunn(df, val_col='pay', group_col='gender', p_adjust='holm')
+
+    fig = px.imshow(posthoc_results)
+
+    return fig
+"""
+
+
+# Define callback to update the boxplot based on dropdown selection
+@callback(
+    Output('barchart', 'figure'),
+    Input('category-dropdown', 'value'),
+    State('session', 'data')
+)
+def update_barchart(selected_category, data):
+    # Create the boxplot using Plotly
+    #print(selected_category)
+    #print("query_data in update_barchart()")
+    session_id = data.get('session_id', None)
+    timestamp = data.get('timestamp', None)
+
+    comparisons = query_comparisons(session_id, timestamp)
+
+    if comparisons is None:
+        return {}
+
+    fig = effect_bars(comparisons, category=selected_category, method='median_comp')
+    return fig
+
+
+"""
+@callback(
+    Output('layout', 'children'),
+    Input('url', 'pathname'),
+    State('session', 'data'),
+)
+def validate(path, data):
+    if path == "/statistical-tests":
+        valid = data.get("valid", False)
+        if not valid:
+            return no_data_layout()
+        else:
+            return page_layout().children
+    else:
+        raise dash.exceptions.PreventUpdate
+"""
+
+
+@callback(
+    Output("category-dropdown", "value"),
+    Output("category-dropdown", "options"),
+    Input("session", "data"),
+    State("category-dropdown", "value"),
 )
 
-def update_scatter(x_axis, color_by, n_clicks, data):
-    session_id = data.get('session_id', None)
+def set_category(data, category):
+    session_id = data.get("session_id", None)
+    timestamp = data.get("timestamp", None)
 
-    print("get data for update scatter")
-    df, _ = query_data(session_id)
-    if df is None:
-        print("was none!")
-        return {}
-    print("was NOT none!")
+    comparisons = query_comparisons(session_id, timestamp)
 
-    if color_by == 'gender':
-        color_discrete_map = {'Male': BLUE, 'Female': PINK, 'Other': FORESTGREEN}
+    if comparisons is None:
+        return "none", [{"label": "No Data Available", "value": "none"}]
+
+    categorical = comparisons["categorical"]
+    keys = list(categorical.keys())
+    options = [{"label": f"{k.capitalize()}", "value": k} for k in keys if not all(np.isnan(categorical[k]["median_comp"][1:]))]
+
+    if not options:
+        return "none", [{"label": " No Data Available", "value": "none"}]
+    elif len(options) > 1:
+        options = options + [{'label': "All", 'value': 'all'}]
+
+    if category:
+        return category, options
     else:
-        color_discrete_map = None
+        return options[0]["value"], options
 
-    if n_clicks % 2 == 1:
-        trendline = "ols"
-    else:
-        trendline = None
 
-    fig = px.scatter(df, x=x_axis, y='pay', color=color_by, color_discrete_map=color_discrete_map,
-                     labels={'pay': "Pay", x_axis: x_axis.capitalize(), color_by: color_by.capitalize()},
-                     template="simple_white", trendline=trendline)
-
-    fig.update_traces(marker_opacity=0.3)
-
-    fig.update_layout(title=f"Pay vs. {x_axis.capitalize()} by {color_by.capitalize()}",
-                      xaxis_title=x_axis.capitalize(), yaxis_title="Pay")
-    return fig
 
 dash.register_page(
     __name__,
