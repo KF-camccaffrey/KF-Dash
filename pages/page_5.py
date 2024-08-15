@@ -9,8 +9,8 @@ import plotly.express as px
 from utils.cache import query_data, query_comparisons
 from utils.config import BLUE, PINK, FORESTGREEN, GRAPHCONFIG, EMPTYFIG
 
-NAME = "Multivariate Regression"
-PATH = "/multivariate-regression"
+NAME = "Interactions"
+PATH = "/interactions"
 
 layout = html.Div()
 
@@ -103,9 +103,9 @@ def update_scatter(x_axis, color_by, n_clicks, data):
 
 def set_x(data, x):
     session_id = data.get("session_id", None)
-    timestamp = data.get("timestamp", None)
+    #timestamp = data.get("timestamp", None)
 
-    comparisons = query_comparisons(session_id, timestamp)
+    comparisons = query_comparisons(session_id) # timestamp
 
     if comparisons is None:
         return "none", [{"label": "No Data Available", "value": "none"}]
@@ -131,9 +131,9 @@ def set_x(data, x):
 
 def set_color(data, category):
     session_id = data.get("session_id", None)
-    timestamp = data.get("timestamp", None)
+    #timestamp = data.get("timestamp", None)
 
-    comparisons = query_comparisons(session_id, timestamp)
+    comparisons = query_comparisons(session_id) # timestamp
 
     if comparisons is None:
         return "none", [{"label": "No Data Available", "value": "none"}]

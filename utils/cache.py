@@ -27,6 +27,10 @@ class InvalidInputError(Exception):
 def get_key(func, *args, **kwargs):
     return func.make_cache_key(func.uncached, *args, **kwargs)
 
+def clear_cache():
+    cache.clear()
+    return
+
 def query_data(session_id, params=None, upload=None, filename=None, check=False):
     # check if data needs to be overwritten
     doOverWrite = not (params is None and (upload is None or filename is None)) and not check
@@ -93,10 +97,10 @@ def query_data(session_id, params=None, upload=None, filename=None, check=False)
 
 
 
-def query_comparisons(session_id, timestamp, comps=None, check=False):
+def query_comparisons(session_id, comps=None, check=False): # timestamp
 
     @cache.memoize()
-    def get_comparisons(session_id, timestamp):
+    def get_comparisons(session_id): # timestamp
         if comps is None:
             raise InvalidInputError("'comps' was None")
         else:
@@ -104,7 +108,7 @@ def query_comparisons(session_id, timestamp, comps=None, check=False):
             result = comparisons.create_comparisons(df, "pay", "gender", comps)
             return result
 
-    key = get_key(get_comparisons, session_id, timestamp)
+    key = get_key(get_comparisons, session_id) # timestamp
 
     if check:
         return cache.has(key)
@@ -113,7 +117,7 @@ def query_comparisons(session_id, timestamp, comps=None, check=False):
         cache.delete(key)
 
     try:
-        data = get_comparisons(session_id, timestamp)
+        data = get_comparisons(session_id) # timestamp
         return data
     except Exception as e:
         print(f"Error while querying comparisons. Message: {e}")
@@ -121,10 +125,10 @@ def query_comparisons(session_id, timestamp, comps=None, check=False):
 
 
 
-def query_model(session_id, timestamp, y=None, X=None, check=False):
+def query_model(session_id, y=None, X=None, check=False): # timestamp
 
     @cache.memoize()
-    def get_model(session_id, timestamp):
+    def get_model(session_id): # timestamp
         if y is None:
             raise InvalidInputError("'y' was None")
 
@@ -146,20 +150,20 @@ def query_model(session_id, timestamp, y=None, X=None, check=False):
             bic=model.bic,
 
             # coefficients
-            pred=model.params.index,
+            pred=np.array(model.params.index),
             beta=model.params.values,
-            bse=model.bse,
+            bse=np.array(model.bse),
 
             # residuals
-            fit=model.fittedvalues,
-            res=model.resid,
+            fit=np.array(model.fittedvalues),
+            res=np.array(model.resid),
             stu=model.get_influence().resid_studentized_internal,
             lev=model.get_influence().hat_matrix_diag,
             cookd=model.get_influence().cooks_distance[0],
         )
         return result
 
-    key = get_key(get_model, session_id, timestamp)
+    key = get_key(get_model, session_id) # timestamp
 
     if check:
         return cache.has(key)
@@ -168,10 +172,10 @@ def query_model(session_id, timestamp, y=None, X=None, check=False):
         cache.delete(key)
 
     try:
-        model = get_model(session_id, timestamp)
+        model = get_model(session_id) # timestamp
         return model
     except Exception as e:
-        print(f"Error while querying comparisons. Message: {e}")
+        print(f"Error while querying model. Message: {e}")
         return None
 
 

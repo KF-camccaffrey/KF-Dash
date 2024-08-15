@@ -2,6 +2,7 @@
 import plotly.express as px
 import plotly.figure_factory as ff
 import plotly.graph_objects as go
+import numpy as np
 
 #>----------------->     Theme Options     <-----------------<#
 BLUE = "#007da4"
@@ -13,6 +14,22 @@ GREEN ="#08a384"
 FORESTGREEN = "#00634f"
 
 def alpha(color, a):
+    if isinstance(color, str):
+        return help_alpha(color, a)
+
+    elif isinstance(color, (list, np.ndarray)):
+        if isinstance(color, list):
+            color = np.array(color)
+
+        result = np.empty(color.shape, dtype=object)
+        for i, c in enumerate(color):
+            result[i] = help_alpha(c, a)
+        return result
+
+    else:
+        raise TypeError("Input should be a string, list, or NumPy array.")
+
+def help_alpha(color, a):
     if color.startswith("#"):
         r,g,b = tuple(int(color[i:i+2],16) for i in (1,3,5))
     elif color.startswith("rgb"):

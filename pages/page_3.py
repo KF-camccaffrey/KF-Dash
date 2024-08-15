@@ -16,8 +16,8 @@ from utils.cache import query_data, query_comparisons
 
 from utils.comparisons import create_comparisons, dumbbell_chart, pie_chart, metric_bars
 
-NAME = "Visualizations"
-PATH = "/visualizations"
+NAME = "Wage Gaps"
+PATH = "/wage-gaps"
 
 data_graph = dcc.Graph(figure=EMPTYFIG, id='generate-chart', config=GRAPHCONFIG)
 data_table = dash_table.DataTable(id='data-table', data=[], page_size=10, style_cell={"font-family": "Gotham Thin"},)
@@ -340,8 +340,8 @@ def reset_dumbbell_data(category):
 )
 def update_metrics(category, lvl, method, data):
     session_id = data.get('session_id', None)
-    timestamp = data.get('timestamp', None)
-    comparisons = query_comparisons(session_id, timestamp)
+    #timestamp = data.get('timestamp', None)
+    comparisons = query_comparisons(session_id) # timestamp
 
     if comparisons is None:
         return [html.H5("Level Summary"), html.H4("No Data Available")]
@@ -452,7 +452,11 @@ def create_bar(value, max_value, color, text_padding_left=20):
     height = "39px"
     width = "300px"
 
-    perc = 100 *  value / max_value
+    if np.isnan(value):
+        perc = 0
+    else:
+        perc = 100 *  value / max_value
+
     if perc < 25:
         textColor = "gray"
     else:
@@ -510,8 +514,8 @@ def create_bar(value, max_value, color, text_padding_left=20):
 
 def update_piechart(category, lvl, data):
     session_id = data.get('session_id', None)
-    timestamp = data.get('timestamp', None)
-    comparisons = query_comparisons(session_id, timestamp)
+    #timestamp = data.get('timestamp', None)
+    comparisons = query_comparisons(session_id) # timestamp
 
     if comparisons is None:
         return {}
@@ -550,8 +554,8 @@ def update_caption(category, method):
 )
 def update_dumbell(category, method, sort, data):
     session_id = data.get('session_id', None)
-    timestamp = data.get('timestamp', None)
-    comparisons = query_comparisons(session_id, timestamp)
+    #timestamp = data.get('timestamp', None)
+    comparisons = query_comparisons(session_id) # timestamp
 
     if comparisons is None:
         return EMPTYFIG
@@ -575,9 +579,9 @@ def update_dumbell(category, method, sort, data):
 
 def set_details_by(data, category):
     session_id = data.get("session_id", None)
-    timestamp = data.get("timestamp", None)
+    #timestamp = data.get("timestamp", None)
 
-    comparisons = query_comparisons(session_id, timestamp)
+    comparisons = query_comparisons(session_id) # timestamp
 
     if comparisons is None:
         return "none", [{"label": " No Data Available", "value": "none"}]

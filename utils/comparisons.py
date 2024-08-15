@@ -86,6 +86,8 @@ def create_comparisons(df, pay, gender, comparisons):
 
         # Initialize sample for kruskal-wallis test
         sample = []
+        mask = np.ones(n_lvls+1, dtype=bool)
+        mask[0] = False
 
         # Each Level 1, ..., N
         for i in range(1, n_lvls+1):
@@ -110,7 +112,11 @@ def create_comparisons(df, pay, gender, comparisons):
             except KeyError:
                 vals_other_i = pd.Series(name=pay)
 
-            sample.append(vals_i)
+            print(f"Level: {lvl_i} ({len(vals_i)})")
+            if len(vals_i) == 0:
+                mask[i] = False
+            else:
+                sample.append(vals_i)
 
             # Calculate counts
             n[i] = len(vals_i)
@@ -141,8 +147,7 @@ def create_comparisons(df, pay, gender, comparisons):
         # Conduct kruskal-wallis test
         kruskal_stat, kruskal_p = kruskal(*sample)
         dunn_p = np.repeat(np.nan, n_lvls+1)
-        dunn_p[1:] = posthoc_dunn(sample).values[0, :]
-        #holm_p = holm_bonferonni(dunn_p)
+        dunn_p[mask] = posthoc_dunn(sample).values[0, :]
 
         metrics = dict(
              n_levels=n_lvls,
@@ -355,11 +360,15 @@ def dumbbell_chart(comparisons, selected_category, method, mysort):
     return go.Figure(data=traces, layout=layout)
 
 def dumbsort(levels, mysort, diffs, n):
+    print(mysort)
     if mysort == "alpha":
-        i = np.argsort(levels)[::-1]
+        clean = [l if l is not None else "zzzz" for l in levels]
+        i = np.argsort(clean)[::-1]
     elif mysort == "diff":
         i = np.argsort(abs(diffs))
-    elif mysort == "size":
+    elif mysort == "n":
+        print(levels)
+        print(n)
         i = np.argsort(n)
     else:
         i = np.arange(len(levels))[::-1]

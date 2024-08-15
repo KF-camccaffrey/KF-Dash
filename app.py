@@ -18,7 +18,7 @@ external_stylesheets = [
 app = dash.Dash(__name__, use_pages=True, external_stylesheets=external_stylesheets)
 app.config.suppress_callback_exceptions = True
 
-from utils.cache import query_data, query_comparisons, query_model
+from utils.cache import query_data, query_comparisons, query_model, clear_cache
 
 PAGES = [page for page in dash.page_registry.values()]
 PATHS, ORDERS, NAMES = [list(page[key] for page in PAGES) for key in ["path", "order", "name"]]
@@ -57,6 +57,7 @@ header = dbc.Navbar(id="navbar", fixed="top", color="white", className="border-b
         dbc.NavLink(html.Img(src="/assets/images/logo.png", height="30px"), href="https://www.kornferry.com/"),
         dbc.NavbarBrand("Pay Equity Dashboard Demo", id="nav-title", className="mx-5", href="/"),
         tabs,
+        dbc.Button("♻", id="recycle-btn", size="sm", color="light", style={"border-radius": 20}, n_clicks=0),
     ])
 ])
 
@@ -213,9 +214,9 @@ def update_session(data):
     valid_model = data.get("valid_model", False)
 
     valid_data = query_data(session_id, check=True) if valid_data else False
-    valid_selection = query_comparisons(session_id, timestamp, check=True) if valid_selection else False
+    valid_selection = query_comparisons(session_id, check=True) if valid_selection else False # timestamp
     valid_selection = valid_selection if valid_data else False
-    valid_model = query_model(session_id, timestamp, check=True) if valid_model else False
+    valid_model = query_model(session_id, check=True) if valid_model else False # timestamp
     valid_model = valid_model if valid_selection else False
 
 
@@ -286,6 +287,15 @@ def update_tabs(i):
 
     names = ["li left-of-active"] * nL + ["li"] * nA + ["li right-of-active"] * nR
     return names
+
+
+@callback(
+    Input("recycle-btn", "n_clicks"),
+)
+def empty_cache(n_clicks):
+    if n_clicks > 0:
+        clear_cache()
+    return
 
 
 

@@ -14,8 +14,8 @@ from utils.cache import query_data, query_comparisons
 from utils.comparisons import create_comparisons, effect_bars
 
 
-NAME = "Statistical Tests"
-PATH = "/statistical-tests"
+NAME = "Pairwise Comparisons"
+PATH = "/pairwise-comparisons"
 
 heatmap = dcc.Graph(figure=EMPTYFIG, id='heatmap', config=GRAPHCONFIG)
 
@@ -105,9 +105,9 @@ def update_barchart(selected_category, data):
     #print(selected_category)
     #print("query_data in update_barchart()")
     session_id = data.get('session_id', None)
-    timestamp = data.get('timestamp', None)
+    #timestamp = data.get('timestamp', None)
 
-    comparisons = query_comparisons(session_id, timestamp)
+    comparisons = query_comparisons(session_id) # timestamp
 
     if comparisons is None:
         return {}
@@ -143,9 +143,9 @@ def validate(path, data):
 
 def set_category(data, category):
     session_id = data.get("session_id", None)
-    timestamp = data.get("timestamp", None)
+    #timestamp = data.get("timestamp", None)
 
-    comparisons = query_comparisons(session_id, timestamp)
+    comparisons = query_comparisons(session_id) # timestamp
 
     if comparisons is None:
         return "none", [{"label": "No Data Available", "value": "none"}]

@@ -14,8 +14,8 @@ import plotly.graph_objects as go
 import plotly.express as px
 from dash.exceptions import PreventUpdate
 
-NAME = "Remediation Modeling"
-PATH = "/remediation-modeling"
+NAME = "Multivariate Regression"
+PATH = "/multivariate-regression"
 
 layout = html.Div()
 
@@ -80,6 +80,29 @@ dummy_pred = html.Div(
     },
 )
 
+alpha_slider = html.Div(className="pt-3", children=[
+    dbc.Label(f"Significance Level (α):", className="input-group-label"),
+    dcc.Slider(id="alpha-slider", persistence=True, min=1, max=6, value=4, step=1, marks={1: "0.1%", 2: "1%", 3: "2.5%", 4: "5%", 5: "10%", 6: "20%"})
+])
+
+res_type = html.Div(className="pt-3 px-3", children=[
+    dbc.Label(f"Plot Type:", className="input-group-label"),
+    dcc.Dropdown(
+        id="res-type",
+        persistence=True,
+        persistence_type="session",
+        options=[
+            {"label": "Actual vs. Expected Pay", "value": 1},
+            {"label": "Residuals", "value": 2},
+            {"label": "Standardized Residuals", "value": 3},
+            {"label": "Studentized Residuals", "value": 4},
+            {"label": "Normal Q-Q of Residuals", "value": 5},
+            {"label": "Cook's Distance", "value": 6},
+        ],
+        value=1
+    )
+])
+
 extra_options = dcc.Checklist(
     id="extra-options",
     options=[
@@ -99,7 +122,10 @@ coeff_plot = dcc.Graph(
     config=GRAPHCONFIG,
     figure=EMPTYFIG,
     className="px-3 py-3",
+    #style={"height": "375px"},
 )
+
+coeff_caption = html.P("No Data Available", id="coeff-caption", className="mx-4", style={"text-align": "center", "border": "2px solid #DEE2E6", "border-radius": "15px", "width": "700px"})
 
 res_plot = dcc.Graph(
     id="res-plot",
@@ -109,10 +135,7 @@ res_plot = dcc.Graph(
 )
 
 info_box = html.Div([
-    html.Div(id="info-hidden", hidden=True),
-    html.H5(id="info-type", className="px-3 pt-3", children="Beta Estimate"),
-    html.H4(id="info-label", className="px-3"),
-    html.Div(id="info-body", className="px-3"),
+    html.Div(id="info-body", className="px-3 py-3"),
 ])
 
 sideinputs = html.Div(className="pl-5", children=[
@@ -139,21 +162,6 @@ sideinputs = html.Div(className="pl-5", children=[
 ])
 
 def page_layout():
-    layout = html.Div(id="layout", children=[
-        dbc.Container([
-            html.P("This is page 5"),
-            trans_selection,
-            quant_pred,
-            cat_pred,
-            dummy_pred,
-            model_btn,
-            dbc.Row([
-                dbc.Col(coeff_plot, width=6),
-                dbc.Col(res_plot, width=6),
-            ])
-        ], className="my-4"),
-    ])
-
     layout = dbc.Container(id="layout", fluid=True, style={"height": "100%", "padding": "0px"}, children=[
         dbc.Row(style={"height": "100%"}, children=[
             dbc.Col(id="sidebar", width=3, children=[
@@ -163,12 +171,34 @@ def page_layout():
                 dbc.Row(style={"height": "65%"}, children=[
                     dbc.Col(id="plot-main", width=6, children=[
                         html.Div(className="plot-frame", children=[
-                            coeff_plot
+                            dbc.Row([
+                                dbc.Col(width=7, children=[
+                                    html.H5("OLS Beta Estimates", className="px-3 pt-3"),
+                                    html.H4(className="px-3", children=[
+                                        html.Span("95%", style={"color": FORESTGREEN}, className="tabular", id="confidence"),
+                                        html.Span(" Confidence Intervals"),
+                                    ]),
+                                ]),
+                                dbc.Col(width=5, children=[
+                                    alpha_slider,
+                                ]),
+                            ]),
+                            dbc.Row(coeff_plot),
+                            dbc.Row(coeff_caption)
                         ])
                     ]),
                     dbc.Col(id="plot-side", width=6, children=[
                         html.Div(className="plot-frame", children=[
-                            res_plot
+                            dbc.Row([
+                                dbc.Col(width=7, children=[
+                                    html.H5("Model Diagnostics", className="px-3 pt-3"),
+                                    html.H4("Residual Plot", id="res-plot-title", className="px-3"),
+                                ]),
+                                dbc.Col(width=5, children=[
+                                    res_type,
+                                ])
+                            ]),
+                            dbc.Row(res_plot),
                         ])
                     ]),
                 ]),
@@ -207,9 +237,9 @@ def page_layout():
 )
 def update_options(data):
     session_id = data.get('session_id', None)
-    timestamp = data.get('timestamp', None)
+    #timestamp = data.get('timestamp', None)
 
-    comparisons = query_comparisons(session_id, timestamp)
+    comparisons = query_comparisons(session_id) # timestamp
 
     if comparisons is None:
         return []
@@ -232,9 +262,9 @@ def update_dummies(predictors, data):
         return [default]
 
     session_id = data.get('session_id', None)
-    timestamp = data.get('timestamp', None)
+    #timestamp = data.get('timestamp', None)
 
-    comparisons = query_comparisons(session_id, timestamp)
+    comparisons = query_comparisons(session_id) # timestamp
 
     if comparisons is None:
         return []
@@ -291,7 +321,7 @@ def update_coeff_plot(quant_preds, cat_preds, dummy_lists, trans, data): #extra,
 
     print(f"dummy_lists: {dummy_lists}")
     session_id = data.get('session_id', None)
-    timestamp = data.get('timestamp', None)
+    #timestamp = data.get('timestamp', None)
 
     df, _ = query_data(session_id)
 
@@ -299,7 +329,7 @@ def update_coeff_plot(quant_preds, cat_preds, dummy_lists, trans, data): #extra,
         raise PreventUpdate
         #return EMPTYFIG, EMPTYFIG
 
-    comparisons = query_comparisons(session_id, timestamp)
+    comparisons = query_comparisons(session_id) # timestamp
 
     if comparisons is None:
         raise PreventUpdate
@@ -326,7 +356,8 @@ def update_coeff_plot(quant_preds, cat_preds, dummy_lists, trans, data): #extra,
 
 
     y, X = preprocess(df, quant_preds, cat_dict, response, trans)
-    model = query_model(session_id, timestamp, y, X)
+    model = query_model(session_id, y, X) # timestamp
+    print(f"Model:\n{model}")
 
     if model is None:
         data["valid_model"] = False
@@ -387,13 +418,14 @@ def preprocess(df, quant_preds, cat_dict, response, trans):
 @callback(
     Output("coeff-plot", "figure"),
     Input("extra-options", "value"),
+    Input("alpha-slider", "value"),
     Input("session", "data"),
 )
-def plot_coeff(extra, data):
+def plot_coeff(extra, alpha, data):
     session_id = data.get("session_id", None)
-    timestamp = data.get("timestamp", None)
+    #timestamp = data.get("timestamp", None)
 
-    model = query_model(session_id, timestamp)
+    model = query_model(session_id) # timestamp
 
     if model is None:
         return EMPTYFIG
@@ -409,14 +441,32 @@ def plot_coeff(extra, data):
         pred = pred[1:]
         beta = beta[1:]
         bse = bse[1:]
+    else:
+        pred[0] = "Intercept"
 
-    alpha = 0.05
+    match alpha:
+        case 1:
+            alpha = 0.001
+        case 2:
+            alpha = 0.01
+        case 3:
+            alpha = 0.025
+        case 4:
+            alpha = 0.05
+        case 5:
+            alpha = 0.1
+        case 6:
+            alpha = 0.2
+        case _:
+            alpha = 0.05
+
+    #alpha = 0.05
     tcrit = stats.t.ppf(1-alpha/2, n-p)
     err = tcrit * bse
     normalCond = np.abs(np.sign(beta + err) + np.sign(beta - err))
 
     color = np.where(beta > 0, "green", "red")
-    color = np.where(normalCond < 2, "gray", color)
+    color = np.where(normalCond < 2, "lightgray", color)
 
     # Create the plot
     fig1 = go.Figure()
@@ -435,20 +485,21 @@ def plot_coeff(extra, data):
         ),
         name="Coefficient",
         error_x=dict(array=err, color="black"),
+        hoverinfo="y",
     ))
 
     fig1.update_layout(
-        title="Linear Model Coefficients with Error Bars",
-        yaxis_title="Predictor",
-        xaxis_title="Coefficient",
+        template="simple_white",
+        xaxis_title="Coefficient Size",
         yaxis=dict(
             title_font=dict(size=14, color="black"),
             tickvals=pred,
             ticktext = [p.split("_", 1)[-1] for p in pred],
+            tickfont=dict(family="Gotham"),
             #tickangle=-45,
         ),
         xaxis=dict(
-            title_font=dict(size=14, color="black")
+            title_font=dict(size=14, color="black", family="Gotham")
         ),
         legend=dict(
             x=1,
@@ -456,183 +507,358 @@ def plot_coeff(extra, data):
             traceorder="normal",
             orientation="v"
         ),
-        margin=dict(l=40, r=40, t=40, b=40)
+        margin=dict(l=10, r=10, t=0, b=0),
+        hovermode="closest",
+        height=375,
     )
 
     fig1.update_xaxes(showgrid=True, gridwidth=1, gridcolor="LightGray")
-    fig1.update_yaxes(showgrid=True, gridwidth=1, gridcolor="LightGray")
 
     return fig1
 
 
 @callback(
+    Output("confidence", "children"),
+    Input("alpha-slider", "value"),
+)
+
+def update_confidence(alpha):
+    match alpha:
+        case 1:
+            alpha = "99.9%"
+        case 2:
+            alpha = "99.0%"
+        case 3:
+            alpha = "97.5%"
+        case 4:
+            alpha = "95.0%"
+        case 5:
+            alpha = "90.0%"
+        case 6:
+            alpha = "80.0%"
+        case _:
+            alpha = "95.0%"
+    return alpha
+
+
+
+@callback(
+    Output("coeff-caption", "children"),
+    Input("coeff-plot", "hoverData"),
+    Input("trans-selection", "value"),
+    State('session', "data"),
+)
+def update_coeff_caption(hoverData, trans, data):
+
+    if hoverData is None:
+        session_id = data.get("session_id", None)
+        model = query_model(session_id)
+        if model is None:
+            return "No Data Available"
+
+        r2 = model["r2"]
+        ar2 = model["ar2"]
+        aic = model["aic"]
+        bic = model["bic"]
+
+        content = html.Div([
+            html.Span(f"R2: ", style={"color": GRAY}),
+            html.Span('{:20,.1f}%'.format(100 * r2)),
+            html.Span(f", Adj. R2: ", style={"color": GRAY}),
+            html.Span('{:20,.1f}%'.format(100 * ar2)),
+            html.Span(f", AIC: ", style={"color": GRAY}),
+            html.Span('{:20,.1f}'.format(aic)),
+            html.Span(f", BIC: ", style={"color": GRAY}),
+            html.Span('{:20,.1f}'.format(bic)),
+        ])
+
+        return content
+
+    beta = hoverData["points"][0]["x"]
+    var = hoverData["points"][0]["y"]
+    color = hoverData["points"][0]["marker.color"]
+
+    color = FORESTGREEN if color == "green" else color
+    color = RED if color == "red" else color
+    color = GRAY if color == "lightgray" else color
+
+    var_split = var.split("_", 1)
+    perc = 100 * (np.exp(beta) - 1)
+
+    if var in ["Intercept", "const"]:
+        content = html.Div([
+            html.Span(f"Expected pay when all predictors are base/zero is "),
+            html.Span(f"{'${:20,.2f}'.format(abs(beta))}", style={"color": color}),
+            html.Span(f"."),
+        ])
+
+        return content
+
+    elif len(var_split) == 2:
+        p = var_split[-1]
+        cat = var_split[0]
+
+        if trans == "log":
+            change = "lower" if perc < 0 else "higher"
+            num = '{:20,.1f}%'.format(abs(perc))
+        else:
+            change = "lower" if beta < 0 else "higher"
+            num = '${:20,.2f}'.format(abs(beta))
+
+        content = html.Div([
+            html.Span(f"For "),
+            html.Span(f"{p}", style={"color": color}),
+            html.Span(f" employees, expected pay is "),
+            html.Span(f"{num} {change}", style={"color": color}),
+            html.Span(f" than base."),
+        ])
+
+        return content
+
+    else:
+        p = var
+        cat = None
+
+        if trans == "log":
+            change = "decreases" if perc < 0 else "increases"
+            num = '{:20,.1f}%'.format(abs(perc))
+        else:
+            change = "decreases" if beta < 0 else "increases"
+            num = '${:20,.2f}'.format(abs(beta))
+
+
+        content = html.Div([
+            html.Span(f"For every one unit increase in "),
+            html.Span(f"{p}", style={"color": color}),
+            html.Span(f", expected pay "),
+            html.Span(f"{change}", style={"color": color}),
+            html.Span(f" by "),
+            html.Span(f"{num}", style={"color": color}),
+            html.Span(f"."),
+        ])
+
+        return content
+
+
+@callback(
+    Output("res-plot-title", "children"),
     Output("res-plot", "figure"),
+    #Output("info-body", "children"),
+    Input("res-type", "value"),
+    #Input("res-plot", "relayoutData"),
     Input("session", "data"),
 )
-def plot_res(data):
+def plot_res(res_type, data): #relayoutData, data):
     session_id = data.get("session_id", None)
-    timestamp = data.get("timestamp", None)
-
-    model = query_model(session_id, timestamp)
+    model = query_model(session_id)
 
     if model is None:
-        return EMPTYFIG
-
-    fit = model["fit"]
-    res = model["res"]
-
-
-    fig2 = go.Figure()
-    fig2.add_trace(go.Scatter(
-        x=fit,
-        y=res,
-        mode="markers",
-        marker=dict(size=0, color="rgba(219, 64, 82, 0.8)"),
-        name="Residuals"
-    ))
-
-    fig2.update_layout(
-        title="Residual Plot",
-        xaxis_title="Fitted Values",
-        yaxis_title="Residuals",
-    )
-
-    return fig2
+        return "Residual Plot", EMPTYFIG #, []
+    else:
+        n = model["n"]
+        fit = model["fit"]
+        res = model["res"]
+        actual = fit + res
+        stu = model["stu"]
+        cookd = model["cookd"]
 
 
+    color = np.where(res < 0, "#d40a1c", "#00173b")
 
-def plot_linear_model_coefficients(df, quant_preds, cat_dict, y, trans, extra):
-    """
-    Create a plot of linear model coefficients with error bars for given predictors and target variable.
+    match res_type:
+        case 1: # Actual vs. Expected Pay
+            title = "Actual vs. Expected Pay"
+            x = fit
+            y = actual
+            xtitle = "Expected Pay"
+            ytitle = "Actual Pay"
 
-    Parameters:
-    df (pd.DataFrame): The DataFrame containing the data.
-    predictors (list): List of column names to be used as predictors.
-    y (str): The name of the target variable.
+        case 2: # Residuals
+            title = "Residuals"
+            x = fit
+            y = res
+            xtitle = "Expected Pay"
+            ytitle = "Residuals"
 
-    Returns:
-    go.Figure: A plotly Figure object with the coefficients and error bars.
-    """
-    X = df[quant_preds]
-    for cat in cat_dict:
-        df_dummies = pd.get_dummies(df[cat], prefix=cat).astype(int)
-        dummies = cat_dict[cat]
-        df_dummies = df_dummies[[f"{cat}_{d}" for d in dummies]]
-        X = pd.concat([X, df_dummies], axis=1)
+        case 3: # Standardized Residuals
+            title = "Standardized Residuals"
+            x = fit
+            y = res / np.std(res)
+            xtitle = "Expected Pay"
+            ytitle = "Standardized Residuals"
 
-    X = X.dropna()
-    X = sm.add_constant(X)
+        case 4: # Studentized Residuals
+            title = "Studentized Residuals"
+            x = fit
+            y = stu
+            xtitle = "Expected Pay"
+            ytitle = "Studentized Residuals"
 
-    y = df[y][X.index]
-    if trans == "log":
-        c = 0.001
-        y = np.where(y > 0, np.log(y), c)
+        case 5: # Normal Q-Q of Residuals
+            title = "Normal Q-Q of Residuals"
+            x = stats.norm.ppf((np.arange(n) + 1) / (n + 1))
+            x = x[res.argsort().argsort()]
+            y = res
+            xtitle = "Theoretical Normal Quantiles"
+            ytitle = "Actual Residual Quantiles"
 
-    # Fit the linear model
-    model = sm.OLS(y, X).fit()
+        case 6: # Cook's Distance
+            title = "Cook's Distance"
+            x = fit
+            y = cookd
+            xtitle = "Expected Pay"
+            ytitle = "Cook's Distance"
 
-    # Extract coefficients and standard errors
-    pred = model.params.index
-    beta = model.params.values
-    bse = model.bse
-    fit = model.fittedvalues
-    res = model.resid
-
-    # remove intercept
-    if 0 in extra:
-        pred = pred[1:]
-        beta = beta[1:]
-        bse = bse[1:]
-
-    alpha = 0.05
-    zcrit = norm.ppf(1-alpha/2)
-    err = zcrit * bse
-    normalCond = np.abs(np.sign(beta + err) + np.sign(beta - err))
-
-    color = np.where(beta > 0, "green", "red")
-    color = np.where(normalCond < 2, "gray", color)
-
-    # Create the plot
-    fig1 = go.Figure()
-
-    """
-    for i, (p, b, e) in enumerate(zip(pred, beta, err)):
-        fig1.add_shape(
-            type="rect",
-            x0=p,
-            x1=p,
-            y0=b-e,
-            y1=b+e,
-            line=dict(color="red", width=4),
-            fillcolor="red",
-            layer="below",
-            name="Error Bar"
-        )
-    """
-
-
-    fig1.add_trace(go.Scatter(
-        x=beta,
-        y=pred,
-        mode="markers",
-        marker=dict(
-            color=color,
-            size=10,
-            line=dict(
-                color="black",
-                width=1
-            )
-        ),
-        name="Coefficient",
-        error_x=dict(array=err, color="black"),
-    ))
-
-
-    fig1.update_layout(
-        title="Linear Model Coefficients with Error Bars",
-        yaxis_title="Predictor",
-        xaxis_title="Coefficient",
-        yaxis=dict(
-            title_font=dict(size=14, color="black"),
-            tickvals=pred,
-            ticktext = [p.split("_", 1)[-1] for p in pred],
-            #tickangle=-45,
-        ),
-        xaxis=dict(
-            title_font=dict(size=14, color="black")
-        ),
-        legend=dict(
-            x=1,
-            y=1,
-            traceorder="normal",
-            orientation="v"
-        ),
-        margin=dict(l=40, r=40, t=40, b=40)
-    )
-
-    fig1.update_xaxes(showgrid=True, gridwidth=1, gridcolor="LightGray")
-    fig1.update_yaxes(showgrid=True, gridwidth=1, gridcolor="LightGray")
-
+        case _:
+            title = "Residuals"
+            x = fit
+            y = res
+            xtitle = "Expected Pay"
+            ytitle = "Residuals"
 
     fig2 = go.Figure()
     fig2.add_trace(go.Scatter(
-        x=fit,
-        y=res,
+        x=x,
+        y=y,
+        text=["$" + '{:20,.2f}'.format(a).strip() for a in actual],
         mode="markers",
-        marker=dict(size=0, color="rgba(219, 64, 82, 0.8)"),
-        name="Residuals"
+        marker=dict(size=0, color=alpha(color, 0.4)),
+        hoverinfo="text",
     ))
-
     fig2.update_layout(
-        title="Residual Plot",
-        xaxis_title="Fitted Values",
-        yaxis_title="Residuals",
+        template="simple_white",
+        xaxis_title=xtitle,
+        yaxis_title=ytitle,
+        xaxis_title_font=dict(size=14, family="Gotham"),
+        yaxis_title_font=dict(size=14, family="Gotham"),
+        margin=dict(l=10, r=10, t=0, b=0),
+        height=430,
     )
 
-    return fig1, fig2
+    return title, fig2
+
+    if relayoutData is None:
+        return title, fig2, []
+
+    if "xaxis.autorange" in relayoutData:
+        xi = np.arange(n)
+
+    else:
+        try:
+            x0 = relayoutData["xaxis.range[0]"]
+            x1 = relayoutData["xaxis.range[1]"]
+        except KeyError:
+            return title, fig2, []
+        condition = (x0 <= x) & (x <= x1)
+        xi = np.where(condition)
+
+
+    if "yaxis.autorange" in relayoutData:
+        yi = np.arange(n)
+    else:
+        try:
+            y0 = relayoutData["yaxis.range[0]"]
+            y1 = relayoutData["yaxis.range[1]"]
+        except KeyError:
+            return title, fig2, []
+        condition = (y0 <= y) & (y <= y1)
+        yi = np.where(condition)
+
+    i = np.intersect1d(xi, yi)
+
+    if i.size == 0:
+        box = []
+    else:
+        df, _ = query_data(session_id)
+        rows = df.iloc[i]
+        box = dag.AgGrid(
+            rowData=rows.to_dict("records"),
+            columnDefs=[{"field": c} for c in rows.columns],
+            columnSize="sizeToFit",
+            dashGridOptions={'pagination':True},
+            style={"height": "240px"},
+    )
 
 
 
+    return title, fig2, box
+
+
+@callback(
+    Output("info-body", "children"),
+    Input("res-plot", "relayoutData"),
+    Input("res-plot", "figure"),
+    State("session", "data")
+)
+def handle_resize(relayoutData, fig, data):
+    default = html.P("No Data Available")
+    session_id = data.get("session_id", None)
+    df, _ = query_data(session_id)
+
+    if df is None:
+        return default
+
+    figdata = fig["data"]
+
+    if relayoutData is None:
+        i = np.array(df.index)
+    elif not figdata:
+        i = np.array(df.index)
+    else:
+        x = np.array(figdata[0]["x"])
+        y = np.array(figdata[0]["y"])
+
+        if "xaxis.autorange" in relayoutData:
+            xi = np.array(df.index)
+
+        else:
+            try:
+                x0 = relayoutData["xaxis.range[0]"]
+                x1 = relayoutData["xaxis.range[1]"]
+            except KeyError:
+                xi = np.array(df.index)
+            else:
+                condition = (x0 <= x) & (x <= x1)
+                xi = np.where(condition)
+
+
+        if "yaxis.autorange" in relayoutData:
+            yi = np.array(df.index)
+        else:
+            try:
+                y0 = relayoutData["yaxis.range[0]"]
+                y1 = relayoutData["yaxis.range[1]"]
+            except KeyError:
+                yi = np.array(df.index)
+            else:
+                condition = (y0 <= y) & (y <= y1)
+                yi = np.where(condition)
+
+        i = np.intersect1d(xi, yi)
+
+    if i.size == 0:
+        print("FLAG 2")
+        return default
+
+
+    rows = df.iloc[i]
+    box = dag.AgGrid(
+        rowData=rows.to_dict("records"),
+        columnDefs=[{"field": c} for c in rows.columns],
+        columnSize="sizeToFit",
+        #dashGridOptions={'pagination':True},
+        style={"height": "270px"},
+    )
+    return box
+
+@callback(
+    Output("res-plot", "relayoutData"),
+    Input("res-plot", "figure")
+)
+def reset_relayout_data(fig):
+    return None
+
+"""
 @callback(
     Output("info-type", "children"),
     Output("info-hidden", "children"),
@@ -670,7 +896,7 @@ def handle_hover_data(coeffHover, coeffClick, resHover, resClick):
         return get_info(resHover, resClick, "Residual", "pointIndex")
 
     raise PreventUpdate
-
+"""
 
 
 @callback(
@@ -686,7 +912,7 @@ def handle_hover_data(coeffHover, coeffClick, resHover, resClick):
 def reset_click_data(*args):
     return None, None, None, None
 
-
+"""
 @callback(
     Output("info-label", "children"),
     Output("info-body", "children"),
@@ -703,15 +929,15 @@ def update_info_box(info_type, info_value, data):
 
 
     session_id = data.get("session_id", None)
-    timestamp = data.get("timestamp", None)
+    #timestamp = data.get("timestamp", None)
 
-    model = query_model(session_id, timestamp)
+    model = query_model(session_id) # timestamp
     if model is None:
         return default_info
 
     if info_type == "Beta Estimate":
 
-        """
+        '''
         var_split = info_value.split("_", 1)
         if len(var_split) == 1:
             label = var_split[-1]
@@ -721,7 +947,7 @@ def update_info_box(info_type, info_value, data):
             label = info_value
 
         return label, "body test"
-        """
+        '''
 
         label, body = coeff_info(info_value, model)
         return label, body
@@ -737,7 +963,7 @@ def update_info_box(info_type, info_value, data):
         if df is None:
             return default_info
 
-        """
+        '''
         print(f"info_value i: {info_value}")
         try:
             row = df.iloc[info_value]
@@ -746,14 +972,15 @@ def update_info_box(info_type, info_value, data):
             return default_info
 
         return info_value, str(row)
-        """
+        '''
 
         label, body = res_info(info_value, df, model)
         return label, body
 
     raise PreventUpdate
+"""
 
-
+"""
 def coeff_info(var, model):
     var_split = var.split("_", 1)
     if len(var_split) == 2:
@@ -769,7 +996,7 @@ def coeff_info(var, model):
     beta = model["beta"]
     bse = model["bse"]
 
-    i = pred.get_loc(var)
+    i = np.where(pred == var)[0][0]
     b = beta[i]
     se = bse[i]
 
@@ -820,7 +1047,9 @@ def coeff_info(var, model):
 
 
     return label, content
+"""
 
+"""
 def res_info(i, df, model):
     print(f"i: {i}")
 
@@ -923,13 +1152,13 @@ def res_info(i, df, model):
     )
 
 
-    """
+    '''
     row_table = dag.AgGrid(
         rowData=row.to_dict("records"),
         columnDefs=[{"field": c} for c in row.columns],
         columnSize="sizeToFit",
     )
-    """
+    '''
 
     content = html.Div(className="px-3", children=[
         dbc.Row([
@@ -951,7 +1180,7 @@ def res_info(i, df, model):
     ])
 
     return f"Employee #{i}", content
-
+"""
 
 dash.register_page(
     __name__,

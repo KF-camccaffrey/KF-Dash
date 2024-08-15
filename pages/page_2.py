@@ -240,7 +240,7 @@ def submit_selection(n_clicks, response, quants, cats, base_selections, data):
         raise PreventUpdate
 
     session_id = data.get("session_id", None)
-    timestamp = data.get("timestamp", None)
+    #timestamp = data.get("timestamp", None)
     valid_data = data.get("valid_data", False)
 
     if not valid_data:
@@ -258,7 +258,7 @@ def submit_selection(n_clicks, response, quants, cats, base_selections, data):
                 raise PreventUpdate
 
     comps = {"response": response, "quantitative": quants, "categorical": categorical}
-    comparisons = query_comparisons(session_id, timestamp, comps)
+    comparisons = query_comparisons(session_id, comps) # timestamp
 
     if comparisons is None:
         data["valid_selection"] = False
