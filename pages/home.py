@@ -10,7 +10,6 @@ from scikit_posthocs import posthoc_dunn
 import pandas as pd
 from utils.config import GRAPHCONFIG, RED, GRAY, YELLOW
 from utils.cache import get_data
-from test import effect_sizes, effect_bars
 import dash_bootstrap_components as dbc
 
 # Page Properties
