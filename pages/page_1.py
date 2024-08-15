@@ -9,7 +9,6 @@ import plotly.express as px
 import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
 from dash.dependencies import MATCH, ALL
-from utils.g_and_h import dgh
 from utils.config import GRAPHCONFIG, BLUE, PINK, alpha, BASICCOMPS, EMPTYFIG, AXISBLANK, MARGINBLANK
 import plotly.graph_objs as go
 from utils import generator
