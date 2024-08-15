@@ -21,19 +21,20 @@
 | `home.py`          | Layout for app homepage
 | `not_found_404.py` | Layout for 404 error page
 | `page_1.py`        | Layout for *Data Generation*
-| `page_2.py`        | Layout for *Visualizations*
-| `page_3.py`        | Layout for *Statistical Tests*
-| `page_4.py`        | Layout for *Multivariate Regression*
-| `page_5.py`        | Layout for *Remediation Modeling*
+| `page_2.py`        | Layout for *Variable Selection*
+| `page_3.py`        | Layout for *Wage Gaps*
+| `page_4.py`        | Layout for *Pairwise Comparisons*
+| `page_5.py`        | Layout for *Interactions*
+| `page_6.py`        | Layout for *Multivariate Regression*
 
 ### `/utils` Directory
-| Name            | Description
-|-----------------|-----------------------------------------
-| `cache.py`      | Contains helper functions for storing/retrieving cached data
+| Name             | Description
+|------------------|-----------------------------------------
+| `cache.py`       | Contains helper functions for storing/retrieving cached data
 | `comparisons.py` | Contains helper functions for creating intermediate chart data
-| `config.py`     | Contains configuration settings and global variables
-| `generator.py`  | Contains helper functions for generating synthetic data
-| `pairwise.py`   | Contains helper functions for conducting pairwise comparisons
+| `config.py`      | Contains configuration settings and global variables
+| `generator.py`   | Contains helper functions for generating synthetic data
+| `pairwise.py`    | Contains helper functions for conducting pairwise comparisons
 
 
 ## Set Up Instructions
@@ -68,6 +69,8 @@ $ pip install -r requirements.txt
 ```console
 $ python app.py
 ```
+
+Then, go to [127.0.0.1:8050/](http://127.0.0.1:8050/) in browser.
 
 ### (Optional) Deactivate Virtual Environment
 ```console
