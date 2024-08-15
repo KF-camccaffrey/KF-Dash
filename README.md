@@ -70,7 +70,7 @@ $ pip install -r requirements.txt
 $ python app.py
 ```
 
-Then, go to [127.0.0.1:8050/](http://127.0.0.1:8050/) in browser.
+Then, go to [127.0.0.1:8050](http://127.0.0.1:8050/) in browser.
 
 ### (Optional) Deactivate Virtual Environment
 ```console
