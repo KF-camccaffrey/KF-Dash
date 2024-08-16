@@ -16,9 +16,21 @@
 | `requirements.txt`           | Text file of all dependencies
 
 ### `/pages` Directory
+
+| Name               | Title                   | Order Index |
+|--------------------|-------------------------|-------------|
+| `home.py`          | Home                    | -1          |
+| `not_found_404.py` | *N/A*                   |  0          |
+| `page_1.py`        | Data Generation         |  1          |
+| `page_2.py`        | Variable Selection      |  2          |
+| `page_3.py`        | Wage Gaps               |  3          |
+| `page_4.py`        | Pairwise Comparisons    |  4          |
+| `page_5.py`        | Interactions            |  5          |
+| `page_6.py`        | Multivariate Regression |  6          |
+
 This directory is used to organize and manage the different pages of the Dash app. It leverages Dash’s [page registry](https://dash.plotly.com/urls) feature to keep each page’s functionality separate and manageable. By following this structure, each page is modular and easier to maintain, with its content and layout handled dynamically.
 
-Each page is defined using the dash.register_page function with the following parameters:
+Each page is defined using the `dash.register_page()` function with the following parameters:
 - `__name__`: This refers to the name of the current Python module (file). It helps Dash identify the page.
 - `path`: The relative URL path where the page will be accessible in the app (e.g., `/data-generation`).
 - `title`: The title of the page, which will be displayed in the browser tab.
@@ -39,20 +51,6 @@ dash.register_page(
     default=page_layout()
 )
 ```
-
-###### Pages
-
-| Name               | Title                   | Order Index |
-|--------------------|-------------------------|-------------|
-| `home.py`          | Home                    | -1          |
-| `not_found_404.py` | *N/A*                   |  0          |
-| `page_1.py`        | Data Generation         |  1          |
-| `page_2.py`        | Variable Selection      |  2          |
-| `page_3.py`        | Wage Gaps               |  3          |
-| `page_4.py`        | Pairwise Comparisons    |  4          |
-| `page_5.py`        | Interactions            |  5          |
-| `page_6.py`        | Multivariate Regression |  6          |
-
 
 ### `/utils` Directory
 | Name             | Description
