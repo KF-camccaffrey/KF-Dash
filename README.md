@@ -43,7 +43,7 @@ dash.register_page(
 ###### Pages
 
 | Name               | Title                   | Order Index |
-|--------------------|---------------------------------------|
+|--------------------|-------------------------|-------------|
 | `home.py`          | Home                    | -1          |
 | `not_found_404.py` | *N/A*                   |  0          |
 | `page_1.py`        | Data Generation         |  1          |
