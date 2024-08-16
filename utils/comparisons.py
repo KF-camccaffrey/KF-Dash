@@ -12,7 +12,6 @@ import numpy as np
 import pandas as pd
 from utils.config import BLUE, PINK, YELLOW, RED, GRAY, alpha, FORESTGREEN, EMPTYFIG
 import plotly.graph_objects as go
-from pprint import pprint
 from scipy.stats import kruskal
 from scikit_posthocs import posthoc_dunn
 import plotly.graph_objects as go
@@ -113,7 +112,6 @@ def create_comparisons(df, pay, gender, comparisons):
             except KeyError:
                 vals_other_i = pd.Series(name=pay)
 
-            print(f"Level: {lvl_i} ({len(vals_i)})")
             if len(vals_i) == 0:
                 mask[i] = False
             else:
@@ -366,15 +364,12 @@ def dumbbell_chart(comparisons, selected_category, method, mysort):
 
 # helper function for sorting dumbbells
 def dumbsort(levels, mysort, diffs, n):
-    print(mysort)
     if mysort == "alpha":
         clean = [l if l is not None else "zzzz" for l in levels]
         i = np.argsort(clean)[::-1]
     elif mysort == "diff":
         i = np.argsort(abs(diffs))
     elif mysort == "n":
-        print(levels)
-        print(n)
         i = np.argsort(n)
     else:
         i = np.arange(len(levels))[::-1]
