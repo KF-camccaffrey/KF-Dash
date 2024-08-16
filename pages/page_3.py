@@ -10,7 +10,7 @@ Description:
 
 import dash
 from dash import dcc, html, Input, Output, State, callback, dash_table, ctx
-from utils.config import BLUE, PINK, FORESTGREEN, GRAPHCONFIG, HOVERLABEL, EMPTYFIG
+from utils.config import BLUE, PINK, FORESTGREEN, GRAPHCONFIG, EMPTYFIG
 import plotly.express as px
 import numpy as np
 import dash_bootstrap_components as dbc
@@ -107,31 +107,6 @@ def page_layout():
     ])
 
     return layout
-
-
-@callback(
-        Output("generate-chart", "figure"),
-        #Input("url", "pathname"),
-        Input('session', 'data')
-)
-def update_chart(data):
-    session_id = data.get('session_id', None)
-    df, _ = query_data(session_id)
-
-    if df is None:
-        return {}
-
-    fig = px.histogram(df, x='pay', color='gender', labels={'pay': 'Pay', 'gender': 'Gender'},
-                       barmode="overlay", hover_data={"gender": False},
-                       color_discrete_map={'Male': BLUE, 'Female': PINK}, opacity=0.4,
-                       template="simple_white")
-
-    fig.update_traces(hoverlabel=HOVERLABEL, hovertemplate="<b>%{y}</b>")
-    fig.update_layout(hovermode="x")
-
-    return fig
-
-
 
 
 @callback(
@@ -446,7 +421,7 @@ def set_details_by(data, category):
         return category, options
     else:
         return options[0]["value"], options
-    
+
 
 dash.register_page(
     __name__,

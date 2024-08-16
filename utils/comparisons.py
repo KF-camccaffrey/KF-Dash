@@ -1,24 +1,25 @@
 
+"""
+File Name: comparisons.py
+Author: Connor McCaffrey
+Date: 8/16/2024
+
+Description:
+    - This file contains functions for calculating intermediate statistics as well as some plotting functions
+"""
 
 import numpy as np
 import pandas as pd
-from utils.config import GRAPHCONFIG, BLUE, PINK, YELLOW, RED, GRAY, alpha, FORESTGREEN, EMPTYFIG
-import plotly.express as px
-import plotly.figure_factory as ff
+from utils.config import BLUE, PINK, YELLOW, RED, GRAY, alpha, FORESTGREEN, EMPTYFIG
 import plotly.graph_objects as go
-import os
 from pprint import pprint
-
 from scipy.stats import kruskal
 from scikit_posthocs import posthoc_dunn
-
-
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-
+# the function that calculates the intermediate statistics
 def create_comparisons(df, pay, gender, comparisons):
-    result = {}
     new_categorical = {}
 
     response = comparisons.get("response", None)
@@ -187,6 +188,7 @@ def create_comparisons(df, pay, gender, comparisons):
         new_categorical[col] = metrics
     return {"response": response, "quantitative": quantitative, "categorical": new_categorical}
 
+# helper function for calculating adjusted p-values
 def holm_bonferonni(p_values):
     sorted_indices = np.argsort(p_values)
     sorted_p_values = p_values[sorted_indices]
@@ -197,6 +199,7 @@ def holm_bonferonni(p_values):
     return adjusted_p_values[np.argsort(sorted_indices)]
 
 
+# returns the pairwise comparison bar chart
 def effect_bars(comparisons, category="all", method="median_comp"):
     comparisons = comparisons["categorical"]
 
@@ -274,6 +277,7 @@ def effect_bars(comparisons, category="all", method="median_comp"):
 
     return fig
 
+# helper function for rounding p-values
 def p_round(p, decimals):
     threshold = 10 ** -decimals
     if p >= threshold:
@@ -281,6 +285,7 @@ def p_round(p, decimals):
     else:
         return "{:.{}e}".format(p, decimals)
 
+# helper function for deciding color of p-values
 def p_color(p):
     if p > 0.1:
         return GRAY
@@ -291,14 +296,14 @@ def p_color(p):
 
 
 
-
+# returns the dumbbell chart on page 3
 def dumbbell_chart(comparisons, selected_category, method, mysort):
-    comparisons = comparisons["categorical"]
+    categorical = comparisons["categorical"]
 
     height = 750
     mt, mb, ml, mr = (10, 10, 10, 10)
 
-    metrics = comparisons[selected_category]
+    metrics = categorical[selected_category]
     n_lvls = metrics["n_levels"]
     lvls = metrics["levels"]
 
@@ -359,6 +364,7 @@ def dumbbell_chart(comparisons, selected_category, method, mysort):
     )
     return go.Figure(data=traces, layout=layout)
 
+# helper function for sorting dumbbells
 def dumbsort(levels, mysort, diffs, n):
     print(mysort)
     if mysort == "alpha":
@@ -374,6 +380,7 @@ def dumbsort(levels, mysort, diffs, n):
         i = np.arange(len(levels))[::-1]
     return i
 
+# helper function for determining size of each dumbbell datapoint
 def dumbsize(pmax, n, nmax):
     pmin = 10
     nmax = n if n > nmax else nmax
@@ -384,10 +391,11 @@ def dumbsize(pmax, n, nmax):
     return vals[i]
 
 
+# returns pie chart on page 3
 def pie_chart(comparisons, selected_category, lvl):
-    comparisons = comparisons["categorical"]
+    categorical = comparisons["categorical"]
 
-    metrics = comparisons[selected_category]
+    metrics = categorical[selected_category]
     lvls = metrics["levels"]
     i = np.where(lvls == lvl)[0][0]
 
@@ -438,11 +446,11 @@ def pie_chart(comparisons, selected_category, lvl):
 
     return fig
 
-
+# returns bar chart on page 3 (this function is no longer used)
 def metric_bars(comparisons, selected_category, lvl, method):
-    comparisons = comparisons["categorical"]
+    categorical = comparisons["categorical"]
 
-    metrics = comparisons[selected_category]
+    metrics = categorical[selected_category]
     lvls = metrics["levels"]
     i = np.where(lvls == lvl)[0][0]
 
@@ -504,6 +512,7 @@ def metric_bars(comparisons, selected_category, lvl, method):
 
     return fig
 
+# helper function for formatting currency
 def format_currency(value):
     if value >= 1_000_000:
         return f"$ {value / 1_000_000:.1f}M"
@@ -511,34 +520,3 @@ def format_currency(value):
         return f"$ {value / 1_000:.1f}k"
     result ="$ " + f"{value:20,.2f}".strip()
     return result
-
-
-
-if __name__ == "__main__":
-
-
-    y = np.random.normal([70000, 65000, 72000, 68000, None], [10000, 10000, 5000, 10000, 5000], size=[20, 5]).flatten()
-    x = np.resize(["Male", "Female", "Other"], 100)
-    z = np.resize(["White", "Black", "Asian", "Latino", "Native"], 100)
-
-
-    df = pd.DataFrame({'gender':x, 'pay':y, 'race':z})
-
-    comparisons = {
-        'race': {},
-        'gender': {},
-    }
-
-    result = create_comparisons(df, 'pay', 'gender', comparisons)
-    np.set_printoptions(precision=2, suppress=True, threshold=np.inf)
-    pprint(result, width=500)
-
-    fig1 = metric_bars(result, "race", "Black", "mean")
-    fig1.show()
-
-
-    #fig1 = effect_bars(result, "median_comp")
-    #fig1.show()
-
-    #fig2 = dumbbell_chart(result, "race", "mean", "alpha")
-    #fig2.show()

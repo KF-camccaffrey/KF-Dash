@@ -1,3 +1,25 @@
+
+"""
+File Name: cache.py
+Author: Connor McCaffrey
+Date: 8/16/2024
+
+Description:
+    - This file contains Flask cache memoization functions so that data can be reused between callbacks without recalculation
+    - Memoization caches the output of a function for each set of unique parameters.
+    - For parameters, we will be using a "session_id" defined in app.py and stored in "session", a dcc.Store component (also in app.py)
+    - Main Functions:
+        - query_data() - store/retrieve the full dataframe
+            - stored: page 1
+            - retrieved: page 2-6
+        - query_comparisons() - store/retrieve intermediate calculations and statistics
+            - stored: page 2
+            - retrieved: page 3-6
+        - query_model() - store/retrieve linear model estimates and residuals
+            - stored: page 6
+            - retrieved: page 6
+"""
+
 import numpy as np
 import pandas as pd
 import datetime
@@ -11,6 +33,7 @@ from io import StringIO
 from utils import comparisons
 import statsmodels.api as sm
 
+# define cache configuration
 cache = Cache(dash.get_app().server, config={
     "CACHE_TYPE": "filesystem", # will not work on systems with ephemeral filesystems like Heroku
     "CACHE_DIR": "cache",
@@ -18,21 +41,30 @@ cache = Cache(dash.get_app().server, config={
     "CACHE_THRESHOLD": 5  # maximum number of users on the app at a single time
 })
 
-# define custom exception
+# define custom exception for error handeling
 class InvalidInputError(Exception):
     def __init__(self, message):
         self.message = message
         super().__init__(self.message)
 
+
+# utility function for retrieving cache keys
 def get_key(func, *args, **kwargs):
     return func.make_cache_key(func.uncached, *args, **kwargs)
 
+# completely clear cache for troubleshooting (only called when the recycle button in header is clicked)
 def clear_cache():
     cache.clear()
     return
 
+# store/retrieve full dataframe
+    # session_id - a session ID defined and managed in app.py
+    # params - dictionary of parameters for synthetic data generation (for storing data only)
+    # upload - uploaded data for when we are using data from file (for storing data only)
+    # filename - filename for when we are using data from file (for storing data only)
+    # check - if True, simply check if data already exists for this specific session_id (for retrieval only)
 def query_data(session_id, params=None, upload=None, filename=None, check=False):
-    # check if data needs to be overwritten
+    # check if data needs to be (over) written
     doOverWrite = not (params is None and (upload is None or filename is None)) and not check
 
     @cache.memoize()
@@ -96,7 +128,10 @@ def query_data(session_id, params=None, upload=None, filename=None, check=False)
         return None, datetime.datetime.min
 
 
-
+# store/retrieve intermediate calculations
+    # session_id - a session ID defined and managed in app.py
+    # comps - dictionary of parameters specifying variables of interest (for storing data only)
+    # check - if True, simply check if data already exists for this specific session_id (for retrieval only)
 def query_comparisons(session_id, comps=None, check=False): # timestamp
 
     @cache.memoize()
@@ -124,7 +159,11 @@ def query_comparisons(session_id, comps=None, check=False): # timestamp
         return None
 
 
-
+# store/retrieve model estimates and residuals
+    # session_id - a session ID defined and managed in app.py
+    # y - post-processed response variable column as input to model (for storing data only)
+    # X - post-processed (predictor) design matrix as input to model (for storing data only)
+    # check - if True, simply check if data already exists for this specific session_id (for retrieval only)
 def query_model(session_id, y=None, X=None, check=False): # timestamp
 
     @cache.memoize()
@@ -177,118 +216,3 @@ def query_model(session_id, y=None, X=None, check=False): # timestamp
     except Exception as e:
         print(f"Error while querying model. Message: {e}")
         return None
-
-
-
-
-
-
-def get_data(session_id, params=None, upload=None, filename=None, check=False):
-    print(f"get_data call:\n\tsession_id: {session_id}\n\tparams: {params}\n\tupload: {upload}\n\tfilename: {filename}")
-
-    @cache.memoize()
-    def create_data(session_id):
-        print(f"Session {session_id}: creating data...")
-        timestamp = datetime.datetime.now()
-
-        if params is None:
-            print(f"'params' was None.")
-            return None, datetime.datetime.min
-
-        try:
-            sample_size = params["sample_size"]
-            gender_ratio = params["gender_ratio"]
-            gender_gap = params["gender_gap"]
-            np.random.seed(42)
-            df = generator.generate_dataset(N=sample_size, ratio=gender_ratio, gap=gender_gap)
-
-        except Exception as e:
-            print(f"There was an error when creating the synthetic data: {e}")
-            return None, datetime.datetime.min
-
-        else:
-            return df.to_json(), timestamp
-
-    @cache.memoize()#make_name=make_cache_key)
-    def store_data(session_id):
-        print(f"Session {session_id}: storing data...")
-        timestamp = datetime.datetime.now()
-
-        if upload is None or filename is None:
-            print(f"'upload' or 'filename' was None.")
-            return None, datetime.datetime.min
-
-        try:
-            content_type, content_string = upload.split(",")
-            decoded = base64.b64decode(content_string)
-            if "csv" in filename:
-                df = pd.read_csv(io.StringIO(decoded.decode("utf-8")))
-            elif "xls" in filename:
-                df = pd.read_excel(io.BytesIO(decoded))
-
-        except Exception as e:
-            print(f"There was an error when storing the file data: {e}")
-            return None, datetime.datetime.min
-        else:
-            return df.to_json(), timestamp
-
-    def is_cached(func, *args, **kwargs):
-        key = func.make_cache_key(func.uncached, *args, **kwargs)
-        return cache.has(key)
-
-    if check:
-        print("FLAG 1")
-        check1 = is_cached(create_data, session_id)
-        check2 = is_cached(store_data, session_id)
-        return check1 or check2
-
-    if params is None and upload is None:
-        print(f"My session_id: {session_id}")
-        df1, timestamp1 = create_data(session_id)
-        df2, timestamp2 = store_data(session_id)
-
-        if df1 is None and df2 is None:
-            print("FLAG 2")
-            cache.delete_memoized(create_data, session_id)
-            cache.delete_memoized(store_data, session_id)
-            return None
-        else:
-            df = df1 if timestamp1 > timestamp2 else df2
-            df = pd.read_json(StringIO(df))
-            print(f"df 3:\n{df}")
-            print("FLAG 3")
-            return df
-
-    elif upload is not None:
-
-        cache.delete_memoized(store_data, session_id)
-
-        df, timestamp = store_data(session_id)
-        df = pd.read_json(StringIO(df))
-        print(f"df upload:\n{df}")
-        return df
-
-    else: # params is not None
-        cache.delete_memoized(create_data, session_id)
-
-        df, timestamp = create_data(session_id)
-        df = pd.read_json(StringIO(df))
-        print(f"df create: {df}")
-        return df
-
-
-
-""" EXAMPLE:
-def get_dataframe(session_id):
-    @cache.memoize()
-    def query_and_serialize_data(session_id):
-        now = datetime.datetime.now()
-
-        x = np.random.normal(80000, 10000, shape=100)
-        y = np.random.normal(60000, 10000, shape=100)
-
-        df = pd.DataFrame({"x":x, "y":y})
-        return df.to_json()
-
-    return pd.read_json(query_and_serialize_data(session_id))
-"""

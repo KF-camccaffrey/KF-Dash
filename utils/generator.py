@@ -1,3 +1,15 @@
+
+"""
+File Name: generator.py
+Author: Connor McCaffrey
+Date: 8/16/2024
+
+Description:
+    - This file contains functions for generating synthetic data, utilized on page 1
+    - Main function here is generate_dataset()
+    - Helper functions include personal_info() and linear_predict()
+"""
+
 import numpy as np
 import pandas as pd
 from faker import Faker
@@ -54,7 +66,6 @@ metros = [
 ]
 
 def personal_info(N, faker):
-
     n = len(metros)
     ind = np.random.randint(n, size=N)
     metro_arr = np.array(metros)
@@ -69,37 +80,6 @@ def personal_info(N, faker):
     eid, job, last = zip(*[(faker.bothify("???#??", "abcdefghijklmnopqrstuvwxyz"), faker.job(), faker.last_name()) for _ in range(N)])
 
     df = pd.DataFrame({"last": last, "eid": eid, "city": city, "state": state, "department": department, "job": job})
-    return df
-
-
-def basic(m_range, f_range, gender_ratio):
-    # total sample N + M + F
-    N = 10000
-
-    # P(M)
-    p_M = gender_ratio / 100
-
-    # slice indices
-    start = int(N*p_M)
-    stop = start + N
-
-    # calculate parameters
-    ranges = np.array((f_range, m_range))
-    means = np.average(ranges, 1)
-    stds = (ranges[:, 1] - means) / 3
-
-    print(f"Ranges: {ranges}")
-    print(f"Means: {means}")
-    print(f"StDs: {stds}")
-
-    # draw samples
-    np.random.seed(42)
-    pay = np.random.normal(means, stds, [N, 2]).T.flatten().round(2)
-    sex = np.repeat(["Female", "Male"], N)
-
-    # create dataframe
-    df = pd.DataFrame({"pay": pay[start:stop],
-                       "sex": sex[start:stop]})
     return df
 
 
@@ -212,30 +192,3 @@ def linear_predict(df, coeffs, sigma=1000):
             result += coeffs[col] * df[col]
 
     return result + np.random.normal(0, sigma, N)
-
-
-
-
-if __name__ == "__main__":
-
-    # import plotly
-    import plotly.express as px
-    import matplotlib.pyplot as plt
-
-    df = generate_dataset(N=1000)
-    print(df)
-
-    """
-    with pd.option_context('display.max_rows', 100, 'display.max_columns', None):  # more options can be specified also
-        print(df.head(100))
-
-
-    male_pay = df[df['gender'] == 'Male']['pay']
-    female_pay = df[df['gender'] == 'Female']['pay']
-
-    bins = 20
-
-    plt.hist(male_pay, bins=bins, alpha=0.5, label='Male Pay')
-    plt.hist(female_pay, bins=bins, alpha=0.5, label='Female Pay')
-    plt.show()
-    """

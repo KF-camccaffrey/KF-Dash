@@ -1,6 +1,13 @@
 
-import plotly.express as px
-import plotly.figure_factory as ff
+"""
+File Name: config.py
+Author: Connor McCaffrey
+Date: 8/16/2024
+
+Description:
+    - This file contains configuration settings, global variables, and default layouts to be used elsewhere
+"""
+
 import plotly.graph_objects as go
 import numpy as np
 
@@ -13,6 +20,7 @@ GRAY = "#919191"
 GREEN ="#08a384"
 FORESTGREEN = "#00634f"
 
+# convert hexcode (or array of hexcodes) to rgba() format given alpha (transparency) value a
 def alpha(color, a):
     if isinstance(color, str):
         return help_alpha(color, a)
@@ -82,21 +90,12 @@ GRAPHCONFIG = {
     'doubleClickDelay': doubleClickDelay
 }
 
-#>----------------->     Hover Labels      <-----------------<#
-
-HOVERLABEL = {
-    'bordercolor': 'white',
-    'font_size': 13,
-    'font_family': "Geist Mono",
-}
-
-
-
 #>----------------->     Styled Print Statements      <-----------------<#
 
+# add color to string when printed in terminal
 def styled(text, color, bold=False):
-    weight = "22" if not bold else "1"
     colors = ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"]
+    weight = "22" if not bold else "1"
     try:
         cc = colors.index(color) + 30
     except ValueError:
@@ -104,9 +103,7 @@ def styled(text, color, bold=False):
     return f"\033[{weight};{cc}m{text}\033[0m"
 
 
-#>----------------->      Comparisons      <-----------------<#
-BASICCOMPS = {"gender": {}, "race": {}, "department": {}, "level": {}, "education": {}}
-
+#>----------------->     Figure Defaults      <-----------------<#
 
 EMPTYFIG = {
     'data': [],
@@ -126,6 +123,9 @@ EMPTYFIG = {
         margin=dict(l=20, r=20, t=40, b=20)  # Adjust margins
     )
 }
+
+
+#>----------------->     Reuseable Figure Layouts      <-----------------<#
 
 AXISBLANK = dict(
     autorange=True,
