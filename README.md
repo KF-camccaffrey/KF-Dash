@@ -56,10 +56,9 @@ dash.register_page(
 | Name             | Description
 |------------------|-----------------------------------------
 | `cache.py`       | Contains helper functions for storing/retrieving cached data
-| `comparisons.py` | Contains helper functions for creating intermediate chart data
+| `comparisons.py` | Contains helper functions for creating intermediate chart data and comparison plots
 | `config.py`      | Contains configuration settings and global variables
 | `generator.py`   | Contains helper functions for generating synthetic data
-| `pairwise.py`    | Contains helper functions for conducting pairwise comparisons
 
 
 ## Set Up Instructions
