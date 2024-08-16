@@ -1,10 +1,16 @@
 
+"""
+File Name: page_5.py
+Author: Connor McCaffrey
+Date: 8/16/2024
+
+Description:
+    - This file contains the layout and callback functions used for the "Interactions" page.
+"""
 
 import dash
-from dash import Dash, dcc, html, Input, Output, State, callback
+from dash import dcc, html, Input, Output, State, callback
 import dash_bootstrap_components as dbc
-import pandas as pd
-import numpy as np
 import plotly.express as px
 from utils.cache import query_data, query_comparisons
 from utils.config import BLUE, PINK, FORESTGREEN, GRAPHCONFIG, EMPTYFIG
@@ -16,23 +22,11 @@ layout = html.Div()
 
 x_dropdown = dcc.Dropdown(
     id="x-axis",
-    #options=[
-    #    {'label': 'Age', 'value': 'age'},
-    #    {'label': 'Years of Experience', 'value': "YoE"}
-    #],
-    #value="age",
     clearable=False,
 )
 
 color_dropdown = dcc.Dropdown(
     id="color-by",
-    #options=[
-    #    {'label': 'Gender', 'value': 'gender'},
-    #    {'label': 'Race', 'value': 'race'},
-    #    {'label': 'Education', 'value': 'education'},
-    #    {'label': 'Level', 'value': 'level'},
-    #],
-    #value="gender",
     clearable=False,
 )
 
@@ -98,12 +92,9 @@ def update_scatter(x_axis, color_by, n_clicks, data):
     Input("session", "data"),
     State("x-axis", "value"),
 )
-
 def set_x(data, x):
     session_id = data.get("session_id", None)
-    #timestamp = data.get("timestamp", None)
-
-    comparisons = query_comparisons(session_id) # timestamp
+    comparisons = query_comparisons(session_id)
 
     if comparisons is None:
         return "none", [{"label": "No Data Available", "value": "none"}]
@@ -129,9 +120,7 @@ def set_x(data, x):
 
 def set_color(data, category):
     session_id = data.get("session_id", None)
-    #timestamp = data.get("timestamp", None)
-
-    comparisons = query_comparisons(session_id) # timestamp
+    comparisons = query_comparisons(session_id)
 
     if comparisons is None:
         return "none", [{"label": "No Data Available", "value": "none"}]

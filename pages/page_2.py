@@ -1,16 +1,17 @@
 
+"""
+File Name: page_2.py
+Author: Connor McCaffrey
+Date: 8/16/2024
+
+Description:
+    - This file contains the layout and callback functions used for the "Variable Selection" page.
+"""
 
 import dash
-from dash import Dash, dcc, html, Input, Output, State, callback, no_update, ALL
+from dash import dcc, html, Input, Output, State, callback, ALL
 import dash_bootstrap_components as dbc
-import pandas as pd
-import numpy as np
 from utils.cache import query_data, query_comparisons
-from utils.config import BLUE, PINK, FORESTGREEN, GRAPHCONFIG, EMPTYFIG, BASICCOMPS
-import statsmodels.api as sm
-import plotly.graph_objects as go
-from pprint import pprint
-
 from dash.exceptions import PreventUpdate
 
 NAME = "Variable Selection"
@@ -238,7 +239,6 @@ def submit_selection(n_clicks, response, quants, cats, base_selections, data):
         raise PreventUpdate
 
     session_id = data.get("session_id", None)
-    #timestamp = data.get("timestamp", None)
     valid_data = data.get("valid_data", False)
 
     if not valid_data:
@@ -263,33 +263,6 @@ def submit_selection(n_clicks, response, quants, cats, base_selections, data):
         data["valid_selection"] = True
 
     return data
-
-"""
-@callback(
-    Output("quant-selection", "value"),
-    Output("cat-selection", "value"),
-    Input("toggle-btn", "n_clicks"),
-    State("quant-selection", "value"),
-    State("cat-selection", "value"),
-    State("quant-selection", "options"),
-    State("cat-selection", "options")
-)
-
-def toggle_options(n_clicks, quant_values, cat_values, quant_opts, cat_opts):
-    if n_clicks == 0:
-        raise PreventUpdate
-
-    print(quant_values)
-    print(cat_values)
-
-    print(quant_opts)
-    print(cat_opts)
-
-    quant_values = quant_opts
-    cat_values = cat_opts
-
-    return quant_values, cat_values
-"""
 
 
 dash.register_page(

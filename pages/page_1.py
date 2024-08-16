@@ -1,22 +1,26 @@
 
+"""
+File Name: page_1.py
+Author: Connor McCaffrey
+Date: 8/16/2024
+
+Description:
+    - This file contains the layout and callback functions used for the "Data Generation" page.
+"""
+
 import dash
 import numpy as np
 import pandas as pd
-import os
-
-from dash import Dash, dcc, html, Input, Output, State, callback, callback_context, dash_table
-import plotly.express as px
+from dash import dcc, html, Input, Output, State, callback, dash_table
 import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
-from dash.dependencies import MATCH, ALL
-from utils.config import GRAPHCONFIG, BLUE, PINK, alpha, BASICCOMPS, EMPTYFIG, AXISBLANK, MARGINBLANK
+from utils.config import GRAPHCONFIG, BLUE, PINK, alpha, EMPTYFIG, AXISBLANK, MARGINBLANK
 import plotly.graph_objs as go
-from utils import generator
 import base64
 import io
 import datetime
 from scipy.stats import norm
-from utils.cache import query_data, query_comparisons
+from utils.cache import query_data
 
 NAME = "Data Generation"
 PATH = "/data-generation"
@@ -31,30 +35,11 @@ gender_gap = html.Div([
     ], className="input-group")
 ], className="my-3")
 
-# Male Pay Range
-male_pay_range = html.Div([
-    dbc.Label("Male Pay Range", html_for="range-slider"),
-    dcc.RangeSlider(id="male-pay-range", persistence=True, min=0, max=100000, value=[60000,80000]),
-], className="my-3")
-
-# Female Pay Range
-female_pay_range = html.Div([
-    dbc.Label("Female Pay Range", html_for="range-slider"),
-    dcc.RangeSlider(id="female-pay-range", persistence=True, min=0, max=100000, value=[60000,80000]),
-], className="my-3")
-
 # Gender Ratio
 gender_ratio = html.Div([
     dbc.Label("Gender Ratio (%Male)", html_for="slider"),
     dcc.Slider(id="gender-ratio", persistence=True, min=0, max=1, value=0.5, marks={0: "0%", 0.25: "25%", 0.5: "50%", 0.75: "75%", 1: "100%"}),
 ], className="my-3")
-
-"""
-sample_size = html.Div([
-    dbc.Label("Sample Size"),
-    dbc.Input(id="sample-size", type="number", value=10000, step=1000, persistence=True),
-], className="my-3")
-"""
 
 sample_size = html.Div([
     dbc.Label("Sample Size", html_for="sample-size", className="input-group-label"),
@@ -65,54 +50,7 @@ sample_size = html.Div([
 ], className="my-3")
 
 
-# Male Advanced
-male_advanced = dbc.Row([
-    dbc.Label("Mean", width="auto"),
-    dbc.Col(
-        dbc.Input(id="male-mean", type="number", placeholder="0"),
-        className="me-3"
-    ),
-
-    dbc.Label("StD", width="auto"),
-    dbc.Col(
-        dbc.Input(id="male-std", type="number", placeholder="1"),
-        className="me-3"
-    ),
-
-    dbc.Label("Sample", width="auto"),
-    dbc.Col(
-        dbc.Input(id="male-n", type="number", placeholder="1000"),
-        className="me-3"
-    ),
-])
-
-# Female Advanced
-female_advanced = dbc.Row([
-    dbc.Label("Mean", width="auto"),
-    dbc.Col(
-        dbc.Input(id="female-mean", type="number", placeholder="0"),
-        className="me-3"
-    ),
-
-    dbc.Label("StD", width="auto"),
-    dbc.Col(
-        dbc.Input(id="female-std", type="number", placeholder="1"),
-        className="me-3"
-    ),
-
-    dbc.Label("Sample", width="auto"),
-    dbc.Col(
-        dbc.Input(id="female-n", type="number", placeholder="1000"),
-        className="me-3"
-    ),
-])
-
-# Random Seed
-random_seed =  dbc.FormFloating([
-    dbc.Input(id="random-seed", type="number", placeholder="42"),
-    dbc.Label("Random Seed"),
-])
-
+# custom styles for input boxes
 custom_styles = {
     'equal-height-columns': {
         'display': 'flex',
@@ -161,19 +99,6 @@ graph_preview =  html.Div([
     )
 ], style={'display': 'flex', 'justify-content': 'center', 'align-items': 'center'})
 
-
-# collapse
-collapse = dbc.Collapse(
-    html.Div([
-        male_pay_range,
-        female_pay_range,
-        male_advanced,
-        female_advanced,
-        random_seed,
-    ]),
-    id="advanced",
-    is_open=False
-),
 
 
 # Form Creation
@@ -233,37 +158,6 @@ def page_layout():
     ])
     return layout
 
-
-@callback(
-    Output("advanced", "is_open"),
-    [Input("advanced-button", "n_clicks")],
-    [State("advanced", "is_open")],
-)
-def toggle_collapse(n, is_open):
-    if n:
-        return not is_open
-    return is_open
-
-"""
-    [
-        State("gender-gap", "value"),
-        State("gender-ratio", "value"),
-        State("sample-size", "value"),
-        State("upload-data", "contents"),
-        State("upload-data", "filename"),
-        State("session", "data"),
-        #State("session", "data"),
-        #State("female-pay-range", "value"),
-        #State("male-mean", "value"),
-        #State("male-std", "value"),
-        #State("male-n", "value"),
-        #State("female-mean", "value"),
-        #State("female-std", "value"),
-        #State("female-n", "value"),
-        #State("random-seed", "value"),
-    ],
-"""
-
 @callback(
     Output('session', 'data', allow_duplicate=True),
     Input("submit-btn", "n_clicks"),
@@ -280,12 +174,7 @@ def save_form(n_clicks, gender_gap, gender_ratio, sample_size, upload, filename,
         raise PreventUpdate
 
     session_id = data.get('session_id', None)
-    #timestamp = datetime.datetime.now()
-
     params = {"gender_gap": gender_gap, "gender_ratio": gender_ratio, "sample_size": sample_size}
-    #print(f"FLAGGGG 1: {params}")
-
-    #print("query_data in save_form()")
     df, timestamp = query_data(session_id, params=params, upload=upload, filename=filename)
 
     if df is None:
@@ -294,11 +183,6 @@ def save_form(n_clicks, gender_gap, gender_ratio, sample_size, upload, filename,
         data["valid_data"] = True
         data['timestamp'] = timestamp
 
-    #print("FLAGGGG 2")
-    #print(f"saved df: {df}")
-    #print("saved data with form")
-
-    #print("Data saved successfully...")
     return data
 
 
@@ -308,7 +192,6 @@ def save_form(n_clicks, gender_gap, gender_ratio, sample_size, upload, filename,
     Output("alert", "is_open"),
     Input("submit-btn", "n_clicks"),
     State("alert", "is_open"),
-
 )
 def toggle_alert(n, is_open):
     if n:
@@ -333,8 +216,6 @@ def update_shape(gap, ratio, fig):
     x = np.linspace(xmin, xmax, 500)
     y_m = norm.pdf(x, xmean + gap/2, sd) * ratio
     y_f = norm.pdf(x, xmean - gap/2, sd) * (1-ratio)
-
-    df = pd.DataFrame({"x":x, "y_m":y_m, "y_f":y_f})
 
     # Create plotly figure object
     fig = go.Figure()
@@ -380,7 +261,6 @@ def parse_contents(contents, filename, date):
         elif "xls" in filename:
             df = pd.read_excel(io.BytesIO(decoded))
     except Exception as e:
-        #print(e)
         return html.Div([f"There was an error processing the file: {e}"])
     else:
         return html.Div([
@@ -398,13 +278,6 @@ def parse_contents(contents, filename, date):
             ),
             html.Hr(),
         ], className="p-30")
-        """
-            html.Div("Raw Content"),
-            html.Pre(contents[0:200] + "...", style={
-                "whiteSpace": "pre-wrap",
-                "wordBreak": "break-all",
-            })
-        """
 
 
 @callback(
@@ -415,7 +288,6 @@ def parse_contents(contents, filename, date):
 )
 def update_output(list_of_contents, list_of_names, list_of_dates):
     if list_of_contents is not None:
-        #children = [parse_contents(c,n,d) for c,n,d in zip(list_of_contents, list_of_names, list_of_dates)]
         children = parse_contents(list_of_contents, list_of_names, list_of_dates)
         return children
 

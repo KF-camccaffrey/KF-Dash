@@ -1,13 +1,15 @@
+
+"""
+File Name: not_found_404.py
+Author: Connor McCaffrey
+Date: 8/16/2024
+
+Description:
+    - This file contains the layout and callback functions used for the "404 Page Not Found" page.
+"""
 import dash
 
-from dash import Dash, dcc, html, Input, Output, State, callback
-import os
-import plotly.express as px
-from scipy.stats import kruskal
-from scikit_posthocs import posthoc_dunn
-import pandas as pd
-from utils.config import GRAPHCONFIG, RED, GRAY, YELLOW
-from utils.cache import get_data
+from dash import html
 import dash_bootstrap_components as dbc
 
 layout = html.Div()

@@ -16,16 +16,42 @@
 | `requirements.txt`           | Text file of all dependencies
 
 ### `/pages` Directory
-| Name               | Description
-|--------------------|-----------------------------------------
-| `home.py`          | Layout for app homepage
-| `not_found_404.py` | Layout for 404 error page
-| `page_1.py`        | Layout for *Data Generation*
-| `page_2.py`        | Layout for *Variable Selection*
-| `page_3.py`        | Layout for *Wage Gaps*
-| `page_4.py`        | Layout for *Pairwise Comparisons*
-| `page_5.py`        | Layout for *Interactions*
-| `page_6.py`        | Layout for *Multivariate Regression*
+This directory is used to organize and manage the different pages of the Dash app. It leverages Dash’s [page registry](https://dash.plotly.com/urls) feature to keep each page’s functionality separate and manageable. By following this structure, each page is modular and easier to maintain, with its content and layout handled dynamically.
+
+Each page is defined using the dash.register_page function with the following parameters:
+- `__name__`: This refers to the name of the current Python module (file). It helps Dash identify the page.
+- `path`: The relative URL path where the page will be accessible in the app (e.g., `/data-generation`).
+- `title`: The title of the page, which will be displayed in the browser tab.
+- `name`: A name for the page, used for internal reference.
+- `order`: An optional index that determines the order in which the page appears in any page list or menu (our values range from -1 to 6).
+- `layout`: This defines the layout of the page. For most pages, it’s an empty div, and the actual content is defined in the `page_layout()` function.
+- `default`: A custom parameter I introduced to use a function (`page_layout()`) instead of a static layout variable. This function provides the content layout dynamically and is handled in `app.py`.
+
+###### Example usage:
+```python
+dash.register_page(
+    __name__,
+    path='/example',
+    title='Example Page',
+    name='Example',
+    order=1,
+    layout=html.Div(),
+    default=page_layout()
+)
+```
+
+###### Pages
+
+| Name               | Title                   | Order Index
+|--------------------|---------------------------------------
+| `home.py`          | Home                    | -1
+| `not_found_404.py` | *N/A*                   |  0
+| `page_1.py`        | Data Generation         |  1
+| `page_2.py`        | Variable Selection      |  2
+| `page_3.py`        | Wage Gaps               |  3
+| `page_4.py`        | Pairwise Comparisons    |  4
+| `page_5.py`        | Interactions            |  5
+| `page_6.py`        | Multivariate Regression |  6
 
 ### `/utils` Directory
 | Name             | Description
