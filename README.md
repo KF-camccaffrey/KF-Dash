@@ -42,16 +42,17 @@ dash.register_page(
 
 ###### Pages
 
-| Name               | Title                   | Order Index
-|--------------------|---------------------------------------
-| `home.py`          | Home                    | -1
-| `not_found_404.py` | *N/A*                   |  0
-| `page_1.py`        | Data Generation         |  1
-| `page_2.py`        | Variable Selection      |  2
-| `page_3.py`        | Wage Gaps               |  3
-| `page_4.py`        | Pairwise Comparisons    |  4
-| `page_5.py`        | Interactions            |  5
-| `page_6.py`        | Multivariate Regression |  6
+| Name               | Title                   | Order Index |
+|--------------------|---------------------------------------|
+| `home.py`          | Home                    | -1          |
+| `not_found_404.py` | *N/A*                   |  0          |
+| `page_1.py`        | Data Generation         |  1          |
+| `page_2.py`        | Variable Selection      |  2          |
+| `page_3.py`        | Wage Gaps               |  3          |
+| `page_4.py`        | Pairwise Comparisons    |  4          |
+| `page_5.py`        | Interactions            |  5          |
+| `page_6.py`        | Multivariate Regression |  6          |
+
 
 ### `/utils` Directory
 | Name             | Description
