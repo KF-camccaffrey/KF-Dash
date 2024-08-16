@@ -318,8 +318,6 @@ def update_dummies(predictors, data):
 )
 
 def update_coeff_plot(quant_preds, cat_preds, dummy_lists, trans, data): #extra, data):
-
-    print(f"dummy_lists: {dummy_lists}")
     session_id = data.get('session_id', None)
     #timestamp = data.get('timestamp', None)
 
@@ -340,7 +338,6 @@ def update_coeff_plot(quant_preds, cat_preds, dummy_lists, trans, data): #extra,
     cat_dict = {}
     if cat_preds is not None:
         for i, c in enumerate(cat_preds):
-            print(f"enumerate: {i} {c} / {len(dummy_lists)}")
             try:
                 dummies = dummy_lists[i]
                 if dummies:
@@ -357,7 +354,6 @@ def update_coeff_plot(quant_preds, cat_preds, dummy_lists, trans, data): #extra,
 
     y, X = preprocess(df, quant_preds, cat_dict, response, trans)
     model = query_model(session_id, y, X) # timestamp
-    print(f"Model:\n{model}")
 
     if model is None:
         data["valid_model"] = False
@@ -837,7 +833,6 @@ def handle_resize(relayoutData, fig, data):
         i = np.intersect1d(xi, yi)
 
     if i.size == 0:
-        print("FLAG 2")
         return default
 
 

@@ -135,10 +135,8 @@ def update_quant_options(response, response_options, data):
     opts = []
 
     if response_options is not None:
-        print("reponse options is NOT none")
         opts = [c for c in response_options if c != response]
     else:
-        print("response options is NONE")
         session_id = data.get("session_id", None)
         df, _ = query_data(session_id)
 
@@ -249,9 +247,8 @@ def submit_selection(n_clicks, response, quants, cats, base_selections, data):
     categorical = {}
     if cats is not None:
         for i, c in enumerate(cats):
-            print(f"enumerate: {i} {c} / {len(base_selections)}")
             try:
-                base = base_selections[i] #base_selections[i]["props"]["children"][1]["props"]["value"]
+                base = base_selections[i]
                 categorical[c] = {"base": base}
             except IndexError as err:
                 print(f"Index Error while iterating through lists of potential base levels. Preventing submission. Message: {err}")
@@ -264,8 +261,6 @@ def submit_selection(n_clicks, response, quants, cats, base_selections, data):
         data["valid_selection"] = False
     else:
         data["valid_selection"] = True
-
-    pprint(comparisons)
 
     return data
 

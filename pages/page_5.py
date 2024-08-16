@@ -68,9 +68,7 @@ def update_scatter(x_axis, color_by, n_clicks, data):
     session_id = data.get('session_id', None)
     df, _ = query_data(session_id)
     if df is None:
-        print("was none!")
         return EMPTYFIG
-    print("was NOT none!")
 
     if color_by == 'gender':
         color_discrete_map = {'Male': BLUE, 'Female': PINK, 'Other': FORESTGREEN}

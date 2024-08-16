@@ -298,7 +298,7 @@ def save_form(n_clicks, gender_gap, gender_ratio, sample_size, upload, filename,
     #print(f"saved df: {df}")
     #print("saved data with form")
 
-    print("Data saved successfully...")
+    #print("Data saved successfully...")
     return data
 
 
