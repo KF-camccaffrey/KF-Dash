@@ -19,8 +19,8 @@
 
 | Name               | Title                   | Order Index |
 |--------------------|-------------------------|-------------|
-| `home.py`          | Home                    | -1          |
-| `not_found_404.py` | *N/A*                   |  0          |
+| `not_found_404.py` | *N/A*                   | -1          |
+| `home.py`          | Home                    |  0          |
 | `page_1.py`        | Data Generation         |  1          |
 | `page_2.py`        | Variable Selection      |  2          |
 | `page_3.py`        | Wage Gaps               |  3          |
